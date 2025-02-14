@@ -8,7 +8,23 @@
   <version>1.0-SNAPSHOT</version>
 
   <name>poijo</name>
+  <description>A POJO to Excel mapper library.</description>
   <url>https://github.com/priyavrat-misra/poijo</url>
+
+  <licenses>
+    <license>
+      <name>The Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>Priyavrat Misra</name>
+      <email>priyavratmisra123@gmail.com</email>
+      <url>https://priyavr.at</url>
+    </developer>
+  </developers>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
