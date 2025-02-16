@@ -6,13 +6,17 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.NonNull;
+import lombok.SneakyThrows;
+import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.WorkbookUtil;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class PoijoUtils {
-  public static <T> Workbook toWorkbook(T object) throws NoSuchFieldException {
+  public static <T> Workbook toWorkbook(@NonNull T object) {
     Workbook workbook = new XSSFWorkbook();
     Class<?> workbookClass = object.getClass();
     if (workbookClass.isAnnotationPresent(io.github.priyavrat_misra.annotations.Workbook.class)) {
@@ -21,20 +25,28 @@ public class PoijoUtils {
     return workbook;
   }
 
-  private static void prepareSheets(Class<?> workbookClass, Workbook workbook)
-      throws NoSuchFieldException {
+  private static void prepareSheets(Class<?> workbookClass, Workbook workbook) {
     final List<String> sheetFieldNames = getEligibleSheetFieldNames(workbookClass);
     for (String sheetFieldName : sheetFieldNames) {
-      final io.github.priyavrat_misra.annotations.Sheet sheet =
-          workbookClass
-              .getDeclaredField(sheetFieldName)
-              .getDeclaredAnnotation(io.github.priyavrat_misra.annotations.Sheet.class);
-      if (sheet != null && !sheet.name().isEmpty()) {
-        workbook.createSheet(WorkbookUtil.createSafeSheetName(sheet.name()));
-      } else {
-        // TODO: split by camel case, capitalize first word
-      }
+      final Sheet sheet = createSheet(workbookClass, workbook, sheetFieldName);
     }
+  }
+
+  @SneakyThrows
+  private static Sheet createSheet(
+      Class<?> workbookClass, Workbook workbook, String sheetFieldName) {
+    final io.github.priyavrat_misra.annotations.Sheet sheetAnnotation =
+        workbookClass
+            .getDeclaredField(sheetFieldName)
+            .getDeclaredAnnotation(io.github.priyavrat_misra.annotations.Sheet.class);
+    return workbook.createSheet(
+        WorkbookUtil.createSafeSheetName(
+            sheetAnnotation != null && !sheetAnnotation.name().isEmpty()
+                ? sheetAnnotation.name()
+                : StringUtils.capitalize(
+                    String.join(
+                        StringUtils.SPACE,
+                        StringUtils.splitByCharacterTypeCamelCase(sheetFieldName)))));
   }
 
   /**
@@ -44,10 +56,11 @@ public class PoijoUtils {
    * @return list of eligible field names as string.
    */
   private static List<String> getEligibleSheetFieldNames(Class<?> workbookClass) {
-    final List<Field> declaredFields = Arrays.asList(workbookClass.getDeclaredFields());
     final List<String> eligibleFieldNames =
-        Arrays.stream(workbookClass.getFields())
-            .filter(declaredFields::contains)
+        ListUtils.intersection(
+                Arrays.asList(workbookClass.getFields()),
+                Arrays.asList(workbookClass.getDeclaredFields()))
+            .stream()
             .filter(field -> Collection.class.isAssignableFrom(field.getType()))
             .map(Field::getName)
             .collect(Collectors.toList());
