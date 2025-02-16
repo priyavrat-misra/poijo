@@ -7,4 +7,6 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Sheet {}
+public @interface Sheet {
+  String name() default "";
+}

@@ -7,4 +7,6 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface SheetSequence {}
+public @interface Sequence {
+  String[] value() default {};
+}
