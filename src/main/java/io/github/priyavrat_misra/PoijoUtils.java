@@ -1,5 +1,6 @@
 package io.github.priyavrat_misra;
 
+import io.github.priyavrat_misra.annotations.Column;
 import io.github.priyavrat_misra.annotations.Sequence;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
@@ -10,9 +11,7 @@ import lombok.NonNull;
 import lombok.SneakyThrows;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.poi.ss.usermodel.RichTextString;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.WorkbookUtil;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
@@ -37,9 +36,8 @@ public class PoijoUtils {
       Class<?> rowClass = rows.stream().findFirst().map(Object::getClass).orElse(null);
       if (rowClass != null) {
         final List<String> columnNames = getEligibleColumnNames(rowClass);
-        // TODO: populate title
-        // TODO: populate body
-        // TODO: format cells
+        populateTitle(sheet, columnNames, rowClass);
+        populateBody(sheet, columnNames, rows, rowClass);
       }
     }
   }
@@ -105,6 +103,62 @@ public class PoijoUtils {
           .collect(Collectors.toList());
     } else {
       return eligibleColumnNames;
+    }
+  }
+
+  @SneakyThrows
+  private static void populateTitle(Sheet sheet, List<String> columnNames, Class<?> rowClass) {
+    int currentRow = 0;
+    int currentCol = 0;
+    Row row = sheet.createRow(currentRow);
+    for (String columnName : columnNames) {
+      Cell cell = row.createCell(currentCol);
+      final Column columnAnnotation =
+          rowClass.getDeclaredField(columnName).getDeclaredAnnotation(Column.class);
+      cell.setCellValue(
+          columnAnnotation != null && !columnAnnotation.name().isEmpty()
+              ? columnAnnotation.name()
+              : StringUtils.capitalize(
+                  StringUtils.join(
+                      StringUtils.splitByCharacterTypeCamelCase(columnName), StringUtils.SPACE)));
+      currentCol++;
+    }
+  }
+
+  @SneakyThrows
+  private static void populateBody(
+      Sheet sheet, List<String> columnNames, Collection<?> rows, Class<?> rowClass) {
+    int currentRow = 1;
+    for (Object rowObject : rows) {
+      Row row = sheet.createRow(currentRow);
+      int currentCol = 0;
+      for (String columnName : columnNames) {
+        Cell cell = row.createCell(currentCol);
+        Object value = rowClass.getDeclaredField(columnName).get(rowObject);
+        if (value != null) {
+          if (value instanceof String) {
+            cell.setCellValue((String) value);
+          } else if (value instanceof Integer) {
+            cell.setCellValue((Integer) value);
+          } else if (value instanceof Double) {
+            cell.setCellValue((Double) value);
+          } else if (value instanceof Boolean) {
+            cell.setCellValue((Boolean) value);
+          } else if (value instanceof RichTextString) {
+            cell.setCellValue((RichTextString) value);
+          } else if (value instanceof Date) {
+            cell.setCellValue((Date) value);
+          } else if (value instanceof LocalDate) {
+            cell.setCellValue((LocalDate) value);
+          } else if (value instanceof LocalDateTime) {
+            cell.setCellValue((LocalDateTime) value);
+          } else if (value instanceof Calendar) {
+            cell.setCellValue((Calendar) value);
+          }
+        }
+        currentCol++;
+      }
+      currentRow++;
     }
   }
 }
