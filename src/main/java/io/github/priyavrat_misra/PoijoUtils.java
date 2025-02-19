@@ -1,7 +1,7 @@
 package io.github.priyavrat_misra;
 
 import io.github.priyavrat_misra.annotations.Column;
-import io.github.priyavrat_misra.annotations.Sequence;
+import io.github.priyavrat_misra.annotations.Order;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,17 +15,37 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.WorkbookUtil;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-// TODO: add docs
+/** A reflection based utility class serving as a façade for the Apache POI APIs. */
 public class PoijoUtils {
+  /**
+   * Maps {@code object} to a {@link XSSFWorkbook} object.
+   *
+   * @param object to be mapped to a {@link Workbook}
+   * @return a {@link XSSFWorkbook} with details populated
+   * @param <T> type parameter for {@code object}
+   * @throws NullPointerException if {@code object} is {@code null}
+   * @throws IllegalArgumentException if {@code object} is not annotated with {@link
+   *     io.github.priyavrat_misra.annotations.Workbook}
+   */
   public static <T> Workbook toWorkbook(@NonNull T object) {
     Workbook workbook = new XSSFWorkbook();
     Class<?> workbookClass = object.getClass();
     if (workbookClass.isAnnotationPresent(io.github.priyavrat_misra.annotations.Workbook.class)) {
       populateData(workbookClass, workbook, object);
+    } else {
+      throw new IllegalArgumentException(
+          "Passed object is not annotated with io.github.priyavrat_misra.annotations.Workbook");
     }
     return workbook;
   }
 
+  /**
+   * Gets the fields eligible for sheets, for each creates a sheet and populates the data.
+   *
+   * <p>{@link SneakyThrows} is used to reduce verbosity because {@link NoSuchFieldException} and
+   * {@link IllegalAccessException} will never arise as {@link
+   * PoijoUtils#getEligibleSheetFieldNames(Class)} only returns accessible fields.
+   */
   @SneakyThrows
   private static <T> void populateData(Class<?> workbookClass, Workbook workbook, T object) {
     final List<String> sheetFieldNames = getEligibleSheetFieldNames(workbookClass);
@@ -42,6 +62,54 @@ public class PoijoUtils {
     }
   }
 
+  /**
+   * A field is eligible to be a {@link Sheet} if it is {@code public}, non-inherited and a {@link
+   * Collection}. If {@link Order#value()} is non-empty, then returns the {@code eligibleColumnNames}
+   * from it without disturbing the order.
+   *
+   * <p>Only {@code public} fields are considered because to access other kind of variables, the
+   * accessibility level has to be altered via reflection, and altering or bypassing the
+   * accessibility of classes, methods, or fields through reflection violates the encapsulation
+   * principle.
+   *
+   * @param workbookClass workbook's class
+   * @return list of eligible (and possibly ordered) field names as string
+   * @see <a
+   *     href="https://wiki.sei.cmu.edu/confluence/display/java/SEC05-J.+Do+not+use+reflection+to+increase+accessibility+of+classes%2C+methods%2C+or+fields">SEC05-J.
+   *     Do not use reflection to increase accessibility of classes, methods, or fields</a>
+   */
+  private static List<String> getEligibleSheetFieldNames(Class<?> workbookClass) {
+    final List<String> eligibleFieldNames =
+        ListUtils.intersection(
+                Arrays.asList(workbookClass.getFields()),
+                Arrays.asList(workbookClass.getDeclaredFields()))
+            .stream()
+            .filter(field -> Collection.class.isAssignableFrom(field.getType()))
+            .map(Field::getName)
+            .collect(Collectors.toList());
+    if (workbookClass.isAnnotationPresent(Order.class)) {
+      return Arrays.stream(workbookClass.getAnnotation(Order.class).value())
+          .filter(eligibleFieldNames::contains)
+          .collect(Collectors.toList());
+    } else {
+      return eligibleFieldNames;
+    }
+  }
+
+  /**
+   * Creates a {@link Sheet} in {@code workbook}. If the {@code sheetField} is annotated with a
+   * {@link io.github.priyavrat_misra.annotations.Sheet#name()}, then it is used as the {@link
+   * Sheet} name. Otherwise, the field's name is split by camel case, capitalized and used as the
+   * name.
+   *
+   * @param sheetField used to access {@link io.github.priyavrat_misra.annotations.Sheet}
+   * @param workbook this is where the sheet is created
+   * @param sheetFieldName field's name as a string
+   * @return newly created {@link Sheet}'s reference
+   * @see WorkbookUtil#createSafeSheetName(String)
+   * @see StringUtils#capitalize(String)
+   * @see StringUtils#splitByCharacterTypeCamelCase(String)
+   */
   private static Sheet createSheet(Field sheetField, Workbook workbook, String sheetFieldName) {
     final io.github.priyavrat_misra.annotations.Sheet sheetAnnotation =
         sheetField.getDeclaredAnnotation(io.github.priyavrat_misra.annotations.Sheet.class);
@@ -56,29 +124,15 @@ public class PoijoUtils {
   }
 
   /**
-   * A field is eligible to be a {@link Sheet} if it is public and a {@link Collection}.
+   * Returns all the public (refer {@link PoijoUtils#getEligibleSheetFieldNames(Class)}
+   * documentation to know why), non-inherited and field types which are supported by {@code
+   * Cell::setCellValue} inside {@code rowClass}. If {@link Order#value()} is non-empty, then
+   * returns the {@code eligibleColumnNames} from it without disturbing the order.
    *
-   * @param workbookClass workbook's class
-   * @return list of eligible field names as string.
+   * @param rowClass class of a sheet's element
+   * @return list of eligible (and possibly ordered) sheet names as string
+   * @see PoijoUtils#getEligibleSheetFieldNames(Class)
    */
-  private static List<String> getEligibleSheetFieldNames(Class<?> workbookClass) {
-    final List<String> eligibleFieldNames =
-        ListUtils.intersection(
-                Arrays.asList(workbookClass.getFields()),
-                Arrays.asList(workbookClass.getDeclaredFields()))
-            .stream()
-            .filter(field -> Collection.class.isAssignableFrom(field.getType()))
-            .map(Field::getName)
-            .collect(Collectors.toList());
-    if (workbookClass.isAnnotationPresent(Sequence.class)) {
-      return Arrays.stream(workbookClass.getAnnotation(Sequence.class).value())
-          .filter(eligibleFieldNames::contains)
-          .collect(Collectors.toList());
-    } else {
-      return eligibleFieldNames;
-    }
-  }
-
   private static List<String> getEligibleColumnNames(Class<?> rowClass) {
     final List<String> eligibleColumnNames =
         ListUtils.intersection(
@@ -97,8 +151,8 @@ public class PoijoUtils {
                         || Calendar.class.isAssignableFrom(field.getType()))
             .map(Field::getName)
             .collect(Collectors.toList());
-    if (rowClass.isAnnotationPresent(Sequence.class)) {
-      return Arrays.stream(rowClass.getAnnotation(Sequence.class).value())
+    if (rowClass.isAnnotationPresent(Order.class)) {
+      return Arrays.stream(rowClass.getAnnotation(Order.class).value())
           .filter(eligibleColumnNames::contains)
           .collect(Collectors.toList());
     } else {
@@ -106,6 +160,18 @@ public class PoijoUtils {
     }
   }
 
+  /**
+   * Maps the first row of the sheet with column names. If a column is annotated with {@link
+   * Column#name()}, then it is used as the column name. Otherwise, the column name is split by
+   * camel case, capitalized and used as the name.
+   *
+   * <p>{@link SneakyThrows} is used to reduce verbosity because {@link NoSuchFieldException} will
+   * never arise as {@link PoijoUtils#getEligibleColumnNames(Class)} only returns accessible fields.
+   *
+   * @param sheet to which the column names are populated
+   * @param columnNames possibly ordered sequence of column names
+   * @param rowClass class of a sheet's element
+   */
   @SneakyThrows
   private static void populateTitle(Sheet sheet, List<String> columnNames, Class<?> rowClass) {
     int currentRow = 0;
@@ -125,6 +191,18 @@ public class PoijoUtils {
     }
   }
 
+  /**
+   * Maps the remaining rows of the sheet with {@code rows}' values.
+   *
+   * <p>{@link SneakyThrows} is used to reduce verbosity because {@link NoSuchFieldException} and
+   * {@link IllegalAccessException} will never arise as {@link
+   * PoijoUtils#getEligibleColumnNames(Class)} only returns accessible fields.
+   *
+   * @param sheet to which the column names are populated
+   * @param columnNames possibly ordered sequence of column names
+   * @param rows a collection of rows which are to be populated to the {@code sheet}
+   * @param rowClass class of a sheet's element
+   */
   @SneakyThrows
   private static void populateBody(
       Sheet sheet, List<String> columnNames, Collection<?> rows, Class<?> rowClass) {
