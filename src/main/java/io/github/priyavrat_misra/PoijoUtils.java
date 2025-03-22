@@ -142,8 +142,11 @@ public class PoijoUtils {
                 field ->
                     String.class.isAssignableFrom(field.getType())
                         || Integer.class.isAssignableFrom(field.getType())
+                        || int.class.isAssignableFrom(field.getType())
                         || Double.class.isAssignableFrom(field.getType())
+                        || double.class.isAssignableFrom(field.getType())
                         || Boolean.class.isAssignableFrom(field.getType())
+                        || boolean.class.isAssignableFrom(field.getType())
                         || RichTextString.class.isAssignableFrom(field.getType())
                         || Date.class.isAssignableFrom(field.getType())
                         || LocalDate.class.isAssignableFrom(field.getType())
