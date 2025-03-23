@@ -11,4 +11,5 @@ import org.apache.commons.lang3.StringUtils;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Column {
   String name() default StringUtils.EMPTY;
+  boolean nested() default false;
 }

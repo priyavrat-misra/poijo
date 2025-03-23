@@ -28,8 +28,8 @@ public class PoijoUtils {
    *     io.github.priyavrat_misra.annotations.Workbook}
    */
   public static <T> Workbook toWorkbook(@NonNull T object) {
-    Workbook workbook = new XSSFWorkbook();
-    Class<?> workbookClass = object.getClass();
+    final Workbook workbook = new XSSFWorkbook();
+    final Class<?> workbookClass = object.getClass();
     if (workbookClass.isAnnotationPresent(io.github.priyavrat_misra.annotations.Workbook.class)) {
       populateData(workbookClass, workbook, object);
     } else {
@@ -50,22 +50,20 @@ public class PoijoUtils {
   private static <T> void populateData(Class<?> workbookClass, Workbook workbook, T object) {
     final List<String> sheetFieldNames = getEligibleSheetFieldNames(workbookClass);
     for (String sheetFieldName : sheetFieldNames) {
-      Field sheetField = workbookClass.getDeclaredField(sheetFieldName);
+      final Field sheetField = workbookClass.getDeclaredField(sheetFieldName);
       final Sheet sheet = createSheet(sheetField, workbook, sheetFieldName);
-      Collection<?> rows = (Collection<?>) sheetField.get(object);
-      Class<?> rowClass = rows.stream().findFirst().map(Object::getClass).orElse(null);
-      if (rowClass != null) {
-        final List<String> columnNames = getEligibleColumnNames(rowClass);
-        populateTitle(sheet, columnNames, rowClass);
-        populateBody(sheet, columnNames, rows, rowClass);
-      }
+      final Collection<?> rows = (Collection<?>) sheetField.get(object);
+      rows.stream()
+          .findFirst()
+          .map(Object::getClass)
+          .ifPresent(rowClass -> populateSheet(sheet, rowClass, rows, StringUtils.EMPTY, 0));
     }
   }
 
   /**
    * A field is eligible to be a {@link Sheet} if it is {@code public}, non-inherited and a {@link
-   * Collection}. If {@link Order#value()} is non-empty, then returns the {@code eligibleColumnNames}
-   * from it without disturbing the order.
+   * Collection}. If {@link Order#value()} is non-empty, then returns the {@code
+   * eligibleColumnNames} from it without disturbing the order.
    *
    * <p>Only {@code public} fields are considered because to access other kind of variables, the
    * accessibility level has to be altered via reflection, and altering or bypassing the
@@ -117,10 +115,7 @@ public class PoijoUtils {
         WorkbookUtil.createSafeSheetName(
             sheetAnnotation != null && !sheetAnnotation.name().isEmpty()
                 ? sheetAnnotation.name()
-                : StringUtils.capitalize(
-                    StringUtils.join(
-                        StringUtils.splitByCharacterTypeCamelCase(sheetFieldName),
-                        StringUtils.SPACE))));
+                : prepareCapitalizedForm(sheetFieldName)));
   }
 
   /**
@@ -128,6 +123,9 @@ public class PoijoUtils {
    * documentation to know why), non-inherited and field types which are supported by {@code
    * Cell::setCellValue} inside {@code rowClass}. If {@link Order#value()} is non-empty, then
    * returns the {@code eligibleColumnNames} from it without disturbing the order.
+   *
+   * <p>To allow nested objects, it even considers fields annotated with {@link Column#nested()} set
+   * to {@code true}.
    *
    * @param rowClass class of a sheet's element
    * @return list of eligible (and possibly ordered) sheet names as string
@@ -151,7 +149,9 @@ public class PoijoUtils {
                         || Date.class.isAssignableFrom(field.getType())
                         || LocalDate.class.isAssignableFrom(field.getType())
                         || LocalDateTime.class.isAssignableFrom(field.getType())
-                        || Calendar.class.isAssignableFrom(field.getType()))
+                        || Calendar.class.isAssignableFrom(field.getType())
+                        || field.isAnnotationPresent(Column.class)
+                            && field.getDeclaredAnnotation(Column.class).nested())
             .map(Field::getName)
             .collect(Collectors.toList());
     if (rowClass.isAnnotationPresent(Order.class)) {
@@ -164,82 +164,101 @@ public class PoijoUtils {
   }
 
   /**
-   * Maps the first row of the sheet with column names. If a column is annotated with {@link
-   * Column#name()}, then it is used as the column name. Otherwise, the column name is split by
-   * camel case, capitalized and used as the name.
+   * Maps the sheet with provided {@code rows}. If a column is annotated with {@link Column#name()},
+   * then it is used as the column name. Otherwise, the column name is split by camel case,
+   * capitalized and used as the name.
+   *
+   * <p>If there is an object annotated with {@link Column#nested()}, then it is recursively
+   * traversed, it's properties are flattened and represented in the sheet. The resulting title for
+   * it is the path to the property from the root space-separated.
    *
    * <p>{@link SneakyThrows} is used to reduce verbosity because {@link NoSuchFieldException} will
    * never arise as {@link PoijoUtils#getEligibleColumnNames(Class)} only returns accessible fields.
    *
    * @param sheet to which the column names are populated
-   * @param columnNames possibly ordered sequence of column names
    * @param rowClass class of a sheet's element
+   * @param rows a collection of rows which are to be populated to the {@code sheet}
+   * @param path used to name nested fields
+   * @param currentCol current column index
+   * @return next column index after an object is mapped
    */
   @SneakyThrows
-  private static void populateTitle(Sheet sheet, List<String> columnNames, Class<?> rowClass) {
-    int currentRow = 0;
-    int currentCol = 0;
-    Row row = sheet.createRow(currentRow);
+  private static int populateSheet(
+      Sheet sheet, Class<?> rowClass, Collection<?> rows, String path, int currentCol) {
+    final List<String> columnNames = getEligibleColumnNames(rowClass);
     for (String columnName : columnNames) {
-      Cell cell = row.createCell(currentCol);
-      final Column columnAnnotation =
-          rowClass.getDeclaredField(columnName).getDeclaredAnnotation(Column.class);
-      cell.setCellValue(
-          columnAnnotation != null && !columnAnnotation.name().isEmpty()
-              ? columnAnnotation.name()
-              : StringUtils.capitalize(
-                  StringUtils.join(
-                      StringUtils.splitByCharacterTypeCamelCase(columnName), StringUtils.SPACE)));
-      currentCol++;
+      final Field field = rowClass.getDeclaredField(columnName);
+      final Column columnAnnotation = field.getDeclaredAnnotation(Column.class);
+      final String title =
+          path
+              + (path.isEmpty() ? StringUtils.EMPTY : StringUtils.SPACE)
+              + (columnAnnotation != null && !columnAnnotation.name().isEmpty()
+                  ? columnAnnotation.name()
+                  : prepareCapitalizedForm(columnName));
+      if (columnAnnotation != null && columnAnnotation.nested()) {
+        // if it is nested, recursively populate the sheet
+        currentCol =
+            populateSheet(
+                sheet,
+                field.getType(),
+                rows.stream().map(obj -> getValue(field, obj)).collect(Collectors.toList()),
+                title,
+                currentCol);
+      } else {
+        // set row title
+        int currentRow = 0;
+        Cell cell = getRow(sheet, currentRow).createCell(currentCol);
+        cell.setCellValue(title);
+        ++currentRow;
+        // set row values
+        for (Object rowObj : rows) {
+          cell = getRow(sheet, currentRow).createCell(currentCol);
+          final Object value = getValue(field, rowObj);
+          if (value != null) {
+            if (value instanceof String) {
+              cell.setCellValue((String) value);
+            } else if (value instanceof Integer) {
+              cell.setCellValue((Integer) value);
+            } else if (value instanceof Double) {
+              cell.setCellValue((Double) value);
+            } else if (value instanceof Boolean) {
+              cell.setCellValue((Boolean) value);
+            } else if (value instanceof RichTextString) {
+              cell.setCellValue((RichTextString) value);
+            } else if (value instanceof Date) {
+              cell.setCellValue((Date) value);
+            } else if (value instanceof LocalDate) {
+              cell.setCellValue((LocalDate) value);
+            } else if (value instanceof LocalDateTime) {
+              cell.setCellValue((LocalDateTime) value);
+            } else if (value instanceof Calendar) {
+              cell.setCellValue((Calendar) value);
+            }
+          }
+          ++currentRow;
+        }
+        ++currentCol;
+      }
     }
+    return currentCol;
   }
 
-  /**
-   * Maps the remaining rows of the sheet with {@code rows}' values.
-   *
-   * <p>{@link SneakyThrows} is used to reduce verbosity because {@link NoSuchFieldException} and
-   * {@link IllegalAccessException} will never arise as {@link
-   * PoijoUtils#getEligibleColumnNames(Class)} only returns accessible fields.
-   *
-   * @param sheet to which the column names are populated
-   * @param columnNames possibly ordered sequence of column names
-   * @param rows a collection of rows which are to be populated to the {@code sheet}
-   * @param rowClass class of a sheet's element
-   */
+  private static String prepareCapitalizedForm(String camelCaseForm) {
+    return StringUtils.capitalize(
+        StringUtils.join(
+            StringUtils.splitByCharacterTypeCamelCase(camelCaseForm), StringUtils.SPACE));
+  }
+
   @SneakyThrows
-  private static void populateBody(
-      Sheet sheet, List<String> columnNames, Collection<?> rows, Class<?> rowClass) {
-    int currentRow = 1;
-    for (Object rowObject : rows) {
-      Row row = sheet.createRow(currentRow);
-      int currentCol = 0;
-      for (String columnName : columnNames) {
-        Cell cell = row.createCell(currentCol);
-        Object value = rowClass.getDeclaredField(columnName).get(rowObject);
-        if (value != null) {
-          if (value instanceof String) {
-            cell.setCellValue((String) value);
-          } else if (value instanceof Integer) {
-            cell.setCellValue((Integer) value);
-          } else if (value instanceof Double) {
-            cell.setCellValue((Double) value);
-          } else if (value instanceof Boolean) {
-            cell.setCellValue((Boolean) value);
-          } else if (value instanceof RichTextString) {
-            cell.setCellValue((RichTextString) value);
-          } else if (value instanceof Date) {
-            cell.setCellValue((Date) value);
-          } else if (value instanceof LocalDate) {
-            cell.setCellValue((LocalDate) value);
-          } else if (value instanceof LocalDateTime) {
-            cell.setCellValue((LocalDateTime) value);
-          } else if (value instanceof Calendar) {
-            cell.setCellValue((Calendar) value);
-          }
-        }
-        currentCol++;
-      }
-      currentRow++;
+  private static Object getValue(Field field, Object obj) {
+    return field.get(obj);
+  }
+
+  private static Row getRow(Sheet sheet, int currentRow) {
+    Row row = sheet.getRow(currentRow);
+    if (row == null) {
+      row = sheet.createRow(currentRow);
     }
+    return row;
   }
 }
