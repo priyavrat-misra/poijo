@@ -251,7 +251,7 @@ public class PoijoUtils {
 
   @SneakyThrows
   private static Object getValue(Field field, Object obj) {
-    return field.get(obj);
+    return obj != null ? field.get(obj) : null;
   }
 
   private static Row getRow(Sheet sheet, int currentRow) {
