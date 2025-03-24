@@ -164,9 +164,9 @@ public class PoijoUtils {
   }
 
   /**
-   * Maps the sheet with provided {@code rows}. If a column is annotated with {@link Column#name()},
-   * then it is used as the column name. Otherwise, the column name is split by camel case,
-   * capitalized and used as the name.
+   * Maps the sheet with provided {@code rows} column-wise. If a column is annotated with {@link
+   * Column#name()}, then it is used as the column name. Otherwise, the column name is split by
+   * camel case, capitalized and used as the name.
    *
    * <p>If there is an object annotated with {@link Column#nested()}, then it is recursively
    * traversed, it's properties are flattened and represented in the sheet. The resulting title for
@@ -196,7 +196,7 @@ public class PoijoUtils {
                   ? columnAnnotation.name()
                   : prepareCapitalizedForm(columnName));
       if (columnAnnotation != null && columnAnnotation.nested()) {
-        // if it is nested, recursively populate the sheet
+        // if it is nested, recursively populate the sheet by flattening it
         currentCol =
             populateSheet(
                 sheet,
@@ -205,42 +205,58 @@ public class PoijoUtils {
                 title,
                 currentCol);
       } else {
-        // set row title
-        int currentRow = 0;
-        Cell cell = getRow(sheet, currentRow).createCell(currentCol);
-        cell.setCellValue(title);
-        ++currentRow;
-        // set row values
-        for (Object rowObj : rows) {
-          cell = getRow(sheet, currentRow).createCell(currentCol);
-          final Object value = getValue(field, rowObj);
-          if (value != null) {
-            if (value instanceof String) {
-              cell.setCellValue((String) value);
-            } else if (value instanceof Integer) {
-              cell.setCellValue((Integer) value);
-            } else if (value instanceof Double) {
-              cell.setCellValue((Double) value);
-            } else if (value instanceof Boolean) {
-              cell.setCellValue((Boolean) value);
-            } else if (value instanceof RichTextString) {
-              cell.setCellValue((RichTextString) value);
-            } else if (value instanceof Date) {
-              cell.setCellValue((Date) value);
-            } else if (value instanceof LocalDate) {
-              cell.setCellValue((LocalDate) value);
-            } else if (value instanceof LocalDateTime) {
-              cell.setCellValue((LocalDateTime) value);
-            } else if (value instanceof Calendar) {
-              cell.setCellValue((Calendar) value);
-            }
-          }
-          ++currentRow;
-        }
-        ++currentCol;
+        // otherwise, populate the current column
+        currentCol = populateColumn(sheet, field, rows, title, currentCol);
       }
     }
     return currentCol;
+  }
+
+  /**
+   * Populates title and values to a column with index {@code columnIndex}.
+   *
+   * @param sheet to which the column names are populated
+   * @param field used to access the value of the field
+   * @param rows a collection of rows which are to be populated to the {@code sheet}
+   * @param title title for the column
+   * @param columnIndex current column index
+   * @return next column index after an object is mapped
+   */
+  private static int populateColumn(
+      Sheet sheet, Field field, Collection<?> rows, String title, int columnIndex) {
+    // set column title
+    int rowIndex = 0;
+    Cell cell = getRow(sheet, rowIndex).createCell(columnIndex);
+    cell.setCellValue(title);
+    ++rowIndex;
+    // set column values
+    for (Object rowObj : rows) {
+      cell = getRow(sheet, rowIndex).createCell(columnIndex);
+      final Object value = getValue(field, rowObj);
+      if (value != null) {
+        if (value instanceof String) {
+          cell.setCellValue((String) value);
+        } else if (value instanceof Integer) {
+          cell.setCellValue((Integer) value);
+        } else if (value instanceof Double) {
+          cell.setCellValue((Double) value);
+        } else if (value instanceof Boolean) {
+          cell.setCellValue((Boolean) value);
+        } else if (value instanceof RichTextString) {
+          cell.setCellValue((RichTextString) value);
+        } else if (value instanceof Date) {
+          cell.setCellValue((Date) value);
+        } else if (value instanceof LocalDate) {
+          cell.setCellValue((LocalDate) value);
+        } else if (value instanceof LocalDateTime) {
+          cell.setCellValue((LocalDateTime) value);
+        } else if (value instanceof Calendar) {
+          cell.setCellValue((Calendar) value);
+        }
+      }
+      ++rowIndex;
+    }
+    return columnIndex + 1;
   }
 
   private static String prepareCapitalizedForm(String camelCaseForm) {
@@ -256,9 +272,6 @@ public class PoijoUtils {
 
   private static Row getRow(Sheet sheet, int currentRow) {
     Row row = sheet.getRow(currentRow);
-    if (row == null) {
-      row = sheet.createRow(currentRow);
-    }
-    return row;
+    return row != null ? row : sheet.createRow(currentRow);
   }
 }
