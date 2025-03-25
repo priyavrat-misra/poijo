@@ -17,6 +17,9 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 /** A reflection based utility class serving as a façade for the Apache POI APIs. */
 public class PoijoUtils {
+
+  private static CreationHelper createHelper;
+
   /**
    * Maps {@code object} to a {@link XSSFWorkbook} object.
    *
@@ -29,6 +32,7 @@ public class PoijoUtils {
    */
   public static <T> Workbook toWorkbook(@NonNull T object) {
     final Workbook workbook = new XSSFWorkbook();
+    createHelper = workbook.getCreationHelper();
     final Class<?> workbookClass = object.getClass();
     if (workbookClass.isAnnotationPresent(io.github.priyavrat_misra.annotations.Workbook.class)) {
       populateData(workbookClass, workbook, object);
@@ -230,6 +234,7 @@ public class PoijoUtils {
     cell.setCellValue(title);
     ++rowIndex;
     // set column values
+    final CellStyle cellStyle = getCellStyle(sheet, field);
     for (Object rowObj : rows) {
       cell = getRow(sheet, rowIndex).createCell(columnIndex);
       final Object value = getValue(field, rowObj);
@@ -253,10 +258,25 @@ public class PoijoUtils {
         } else if (value instanceof Calendar) {
           cell.setCellValue((Calendar) value);
         }
+        if (cellStyle != null) {
+          cell.setCellStyle(cellStyle);
+        }
       }
       ++rowIndex;
     }
     return columnIndex + 1;
+  }
+
+  private static CellStyle getCellStyle(Sheet sheet, Field field) {
+    final Column columnAnnotation = field.getDeclaredAnnotation(Column.class);
+    if (columnAnnotation != null && !columnAnnotation.formatCode().isEmpty()) {
+      CellStyle cellStyle = sheet.getWorkbook().createCellStyle();
+      cellStyle.setDataFormat(
+          createHelper.createDataFormat().getFormat(columnAnnotation.formatCode()));
+      return cellStyle;
+    } else {
+      return null;
+    }
   }
 
   private static String prepareCapitalizedForm(String camelCaseForm) {
