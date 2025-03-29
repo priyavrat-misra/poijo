@@ -154,6 +154,7 @@ public class PoijoUtils {
                         || LocalDate.class.isAssignableFrom(field.getType())
                         || LocalDateTime.class.isAssignableFrom(field.getType())
                         || Calendar.class.isAssignableFrom(field.getType())
+                        || Collection.class.isAssignableFrom(field.getType())
                         || field.isAnnotationPresent(Column.class)
                             && field.getDeclaredAnnotation(Column.class).nested())
             .map(Field::getName)
@@ -199,7 +200,85 @@ public class PoijoUtils {
               + (columnAnnotation != null && !columnAnnotation.name().isEmpty()
                   ? columnAnnotation.name()
                   : prepareCapitalizedForm(columnName));
-      if (columnAnnotation != null && columnAnnotation.nested()) {
+      int rowIndex = 0;
+      Cell cell = getRow(sheet, rowIndex).createCell(currentCol);
+      cell.setCellValue(title);
+      ++rowIndex;
+      // set column values
+      final CellStyle cellStyle = getCellStyle(sheet, field);
+      for (Object rowObj : rows) {
+        cell = getRow(sheet, rowIndex).createCell(currentCol);
+        final Object value = getValue(field, rowObj);
+        if (value != null) {
+          if (value instanceof String) {
+            cell.setCellValue((String) value);
+          } else if (value instanceof Integer) {
+            cell.setCellValue((Integer) value);
+          } else if (value instanceof Double) {
+            cell.setCellValue((Double) value);
+          } else if (value instanceof Boolean) {
+            cell.setCellValue((Boolean) value);
+          } else if (value instanceof RichTextString) {
+            cell.setCellValue((RichTextString) value);
+          } else if (value instanceof Date) {
+            cell.setCellValue((Date) value);
+          } else if (value instanceof LocalDate) {
+            cell.setCellValue((LocalDate) value);
+          } else if (value instanceof LocalDateTime) {
+            cell.setCellValue((LocalDateTime) value);
+          } else if (value instanceof Calendar) {
+            cell.setCellValue((Calendar) value);
+          }
+          if (cellStyle != null) {
+            cell.setCellStyle(cellStyle);
+          }
+        }
+        ++rowIndex;
+      }
+      currentCol = currentCol + 1;
+      if (Collection.class.isAssignableFrom(field.getType())) {
+        List<ArrayList<?>> rowCollections =
+            rows.stream()
+                .map(obj -> getValue(field, obj))
+                .map(obj -> obj != null ? (Collection<?>) obj : Collections.emptyList())
+                .map(ArrayList::new)
+                .collect(Collectors.toList());
+        Class<?> elementClass =
+            rows.stream()
+                .map(obj -> getValue(field, obj))
+                .filter(Objects::nonNull)
+                .map(obj -> (Collection<?>) obj)
+                .filter(collection -> !collection.isEmpty())
+                .filter(collection -> collection.stream().anyMatch(Objects::nonNull))
+                .findFirst()
+                .flatMap(
+                    collection ->
+                        collection.stream()
+                            .filter(Objects::nonNull)
+                            .findFirst()
+                            .map(Object::getClass))
+                .orElse(null);
+        final int maxSize =
+            rows.stream()
+                .map(obj -> getValue(field, obj))
+                .filter(Objects::nonNull)
+                .map(obj -> (Collection<?>) obj)
+                .max(Comparator.comparingInt(Collection::size))
+                .orElse(Collections.emptyList())
+                .size();
+        for (int i = 0; i < maxSize; ++i) {
+          int finalI = i;
+          currentCol =
+              populateSheet(
+                  sheet,
+                  elementClass,
+                  rowCollections.stream()
+                      .map(row -> finalI < row.size() ? row.get(finalI) : null)
+                      .collect(Collectors.toList()),
+                  title + i,
+                  currentCol);
+        }
+      } else if (columnAnnotation != null && columnAnnotation.nested()) {
         // if it is nested, recursively populate the sheet by flattening it
         currentCol =
             populateSheet(
@@ -210,61 +289,11 @@ public class PoijoUtils {
                 currentCol);
       } else {
         // otherwise, populate the current column
-        currentCol = populateColumn(sheet, field, rows, title, currentCol);
+        // set column title
+
       }
     }
     return currentCol;
-  }
-
-  /**
-   * Populates title and values to a column with index {@code columnIndex}.
-   *
-   * @param sheet to which the column names are populated
-   * @param field used to access the value of the field
-   * @param rows a collection of rows which are to be populated to the {@code sheet}
-   * @param title title for the column
-   * @param columnIndex current column index
-   * @return next column index after an object is mapped
-   */
-  private static int populateColumn(
-      Sheet sheet, Field field, Collection<?> rows, String title, int columnIndex) {
-    // set column title
-    int rowIndex = 0;
-    Cell cell = getRow(sheet, rowIndex).createCell(columnIndex);
-    cell.setCellValue(title);
-    ++rowIndex;
-    // set column values
-    final CellStyle cellStyle = getCellStyle(sheet, field);
-    for (Object rowObj : rows) {
-      cell = getRow(sheet, rowIndex).createCell(columnIndex);
-      final Object value = getValue(field, rowObj);
-      if (value != null) {
-        if (value instanceof String) {
-          cell.setCellValue((String) value);
-        } else if (value instanceof Integer) {
-          cell.setCellValue((Integer) value);
-        } else if (value instanceof Double) {
-          cell.setCellValue((Double) value);
-        } else if (value instanceof Boolean) {
-          cell.setCellValue((Boolean) value);
-        } else if (value instanceof RichTextString) {
-          cell.setCellValue((RichTextString) value);
-        } else if (value instanceof Date) {
-          cell.setCellValue((Date) value);
-        } else if (value instanceof LocalDate) {
-          cell.setCellValue((LocalDate) value);
-        } else if (value instanceof LocalDateTime) {
-          cell.setCellValue((LocalDateTime) value);
-        } else if (value instanceof Calendar) {
-          cell.setCellValue((Calendar) value);
-        }
-        if (cellStyle != null) {
-          cell.setCellStyle(cellStyle);
-        }
-      }
-      ++rowIndex;
-    }
-    return columnIndex + 1;
   }
 
   private static CellStyle getCellStyle(Sheet sheet, Field field) {

@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "name": "John Doe",
+    "age": 30,
+    "salary": 55000.75,
+    "address": {
+      "street": "123 Main St",
+      "city": "Springfield",
+      "state": "IL",
+      "zipcode": 62701
+    },
+    "dob": "1995-07-15",
+    "active": true
+  },
+  {
+    "id": 2,
+    "name": "Jane Smith",
+    "age": 28,
+    "salary": 62000.50,
+    "address": {
+      "street": "456 Oak Rd",
+      "city": "Chicago",
+      "state": "IL",
+      "zipcode": 60601
+    },
+    "dob": "1997-03-22",
+    "active": false
+  },
+  {
+    "id": 3,
+    "name": "Alice Johnson",
+    "age": 35,
+    "salary": 75000.99,
+    "address": {
+      "street": "789 Pine Ln",
+      "city": "New York",
+      "state": "NY",
+      "zipcode": 10001
+    },
+    "dob": "1989-10-10",
+    "active": true
+  },
+  {
+    "id": 4,
+    "name": "Bob Brown",
+    "age": 40,
+    "salary": 83000.10,
+    "address": {
+      "street": "321 Elm St",
+      "city": "Los Angeles",
+      "state": "CA",
+      "zipcode": 90001
+    },
+    "dob": "1984-04-12",
+    "active": false
+  },
+  {
+    "id": 5,
+    "name": "Charlie White",
+    "age": 50,
+    "salary": 95000.25,
+    "address": {
+      "street": "654 Maple Ave",
+      "city": "San Francisco",
+      "state": "CA",
+      "zipcode": 94101
+    },
+    "dob": "1974-09-28",
+    "active": true
+  }
+]

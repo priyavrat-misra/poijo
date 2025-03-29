@@ -1,0 +1,57 @@
+{
+  "store": {
+    "name": "Tech Store",
+    "location": {
+      "street": "Downtown",
+      "city": "NY",
+      "details": {
+        "state": "New York",
+        "zip": "91101",
+        "country": "US"
+      },
+      "ph": [
+        "2122222222",
+        "1234567890"
+      ]
+    },
+    "products": [
+      {
+        "id": 1,
+        "name": "Laptop",
+        "price": 999.99,
+        "specs": {
+          "processor": "Intel i7",
+          "ram": "16GB",
+          "storage": "512GB SSD"
+        }
+      },
+      {
+        "id": 2,
+        "name": "Smartphone",
+        "price": 799.99,
+        "specs": {
+          "processor": "Snapdragon 888",
+          "ram": "8GB",
+          "storage": "128GB"
+        }
+      }
+    ],
+    "employees": [
+      {
+        "id": 1,
+        "name": "Alice",
+        "role": "Manager"
+      },
+      {
+        "id": 2,
+        "name": "Bob",
+        "role": "Sales Associate"
+      }
+    ],
+    "working_hours": [
+      "9:00 AM - 5:00 PM",
+      "9:00 AM - 6:00 PM",
+      "10:00 AM - 4:00 PM"
+    ]
+  }
+}
