@@ -1,6 +1,7 @@
 package io.github.priyavrat_misra;
 
 import io.github.priyavrat_misra.annotations.Column;
+import io.github.priyavrat_misra.annotations.Nested;
 import io.github.priyavrat_misra.annotations.Order;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
@@ -58,6 +59,7 @@ public class PoijoUtils {
       final Sheet sheet = createSheet(sheetField, workbook, sheetFieldName);
       final Collection<?> rows = (Collection<?>) sheetField.get(object);
       rows.stream()
+          .filter(Objects::nonNull)
           .findFirst()
           .map(Object::getClass)
           .ifPresent(rowClass -> populateSheet(sheet, rowClass, rows, StringUtils.EMPTY, 0));
@@ -128,8 +130,8 @@ public class PoijoUtils {
    * Cell::setCellValue} inside {@code rowClass}. If {@link Order#value()} is non-empty, then
    * returns the {@code eligibleColumnNames} from it without disturbing the order.
    *
-   * <p>To allow nested objects, it even considers fields annotated with {@link Column#nested()} set
-   * to {@code true}.
+   * <p>To allow nested objects, it even considers fields annotated with {@link Nested} set to
+   * {@code true}.
    *
    * @param rowClass class of a sheet's element
    * @return list of eligible (and possibly ordered) sheet names as string
@@ -154,8 +156,7 @@ public class PoijoUtils {
                         || LocalDate.class.isAssignableFrom(field.getType())
                         || LocalDateTime.class.isAssignableFrom(field.getType())
                         || Calendar.class.isAssignableFrom(field.getType())
-                        || field.isAnnotationPresent(Column.class)
-                            && field.getDeclaredAnnotation(Column.class).nested())
+                        || field.getType().isAnnotationPresent(Nested.class))
             .map(Field::getName)
             .collect(Collectors.toList());
     if (rowClass.isAnnotationPresent(Order.class)) {
@@ -172,9 +173,9 @@ public class PoijoUtils {
    * Column#name()}, then it is used as the column name. Otherwise, the column name is split by
    * camel case, capitalized and used as the name.
    *
-   * <p>If there is an object annotated with {@link Column#nested()}, then it is recursively
-   * traversed, it's properties are flattened and represented in the sheet. The resulting title for
-   * it is the path to the property from the root space-separated.
+   * <p>If there is an object annotated with {@link Nested}, then it is recursively traversed, it's
+   * properties are flattened and represented in the sheet. The resulting title for it is the path
+   * to the property from the root space-separated.
    *
    * <p>{@link SneakyThrows} is used to reduce verbosity because {@link NoSuchFieldException} will
    * never arise as {@link PoijoUtils#getEligibleColumnNames(Class)} only returns accessible fields.
@@ -199,7 +200,7 @@ public class PoijoUtils {
               + (columnAnnotation != null && !columnAnnotation.name().isEmpty()
                   ? columnAnnotation.name()
                   : prepareCapitalizedForm(columnName));
-      if (columnAnnotation != null && columnAnnotation.nested()) {
+      if (field.getType().isAnnotationPresent(Nested.class)) {
         // if it is nested, recursively populate the sheet by flattening it
         currentCol =
             populateSheet(
