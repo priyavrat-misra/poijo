@@ -13,4 +13,6 @@ public @interface Column {
   String name() default StringUtils.EMPTY;
 
   String formatCode() default StringUtils.EMPTY;
+
+  boolean nested() default false;
 }
