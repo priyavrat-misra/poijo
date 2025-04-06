@@ -12,7 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 public @interface Column {
   String name() default StringUtils.EMPTY;
 
-  String formatCode() default StringUtils.EMPTY;
+  String numberFormat() default StringUtils.EMPTY;
 
   boolean nested() default false;
 }
