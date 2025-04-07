@@ -13,7 +13,7 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.WorkbookUtil;
 
 /**
- * A reflection based utility class serving as a façade for the Apache POI APIs.
+ * An annotation and reflection based utility class serving as a façade for the Apache POI APIs.
  *
  * <p>This utility class provides a single entry point, {@link PoijoUtils#map(Workbook, Object)},
  * which maps nested POJOs to Apache POI {@link Workbook} objects, greatly reducing interaction with
@@ -172,11 +172,14 @@ import org.apache.poi.ss.util.WorkbookUtil;
  * considered for a sheet.
  *
  * <p>Nested objects and lists are handled in a recursive manner, resulting in a flattened
- * representation, suitable for the two-dimensional view of a spreadsheet.
+ * representation, suitable for the two-dimensional view of a spreadsheet. The title for a nested
+ * field is the path of field names to it from the base class delimited by {@link
+ * io.github.priyavrat_misra.annotations.Workbook#delimiter()}.
  *
  * @see <a
- *     href="https://wiki.sei.cmu.edu/confluence/display/java/SEC05-J.+Do+not+use+reflection+to+increase+accessibility+of+classes%2C+methods%2C+or+fields">SEC05-J.
- *     Do not use reflection to increase accessibility of classes, methods, or fields</a>
+ *     href="https://wiki.sei.cmu.edu/confluence/display/java/SEC05-J.+Do+not+use+reflection+to+increase+accessibility+of+classes%2C+methods%2C+or+fields"
+ *     target="_blank">SEC05-J. Do not use reflection to increase accessibility of classes, methods,
+ *     or fields</a>
  * @see io.github.priyavrat_misra.annotations.Workbook
  * @see io.github.priyavrat_misra.annotations.Sheet
  * @see io.github.priyavrat_misra.annotations.Column
