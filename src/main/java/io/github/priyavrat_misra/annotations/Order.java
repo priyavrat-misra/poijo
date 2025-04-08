@@ -1,5 +1,6 @@
 package io.github.priyavrat_misra.annotations;
 
+import io.github.priyavrat_misra.Poijo;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -34,9 +35,8 @@ import java.lang.annotation.Target;
  *
  * In the example above, {@code NatureReserve} isn't annotated {@code @Order}, which means the
  * sheets can be in any order. Note that it is not guaranteed that the order of declaration will be
- * maintained here because {@link io.github.priyavrat_misra.PoijoUtils} uses {@link
- * Class#getDeclaredFields()} to obtain the fields, which as per the docs, <q>doesn't return in any
- * particular order</q>.
+ * maintained here because {@link Poijo} uses {@link Class#getDeclaredFields()} to obtain the
+ * fields, which as per the docs, <q>doesn't return in any particular order</q>.
  *
  * <p>In {@code Animal}, {@code type} is omitted, so it won't show up in the spreadsheet. {@code
  * Plant} sheet will have the column <i>"Name"</i> followed by <i>"Type"</i>.

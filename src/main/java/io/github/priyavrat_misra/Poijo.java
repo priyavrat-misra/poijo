@@ -17,9 +17,9 @@ import org.slf4j.LoggerFactory;
 /**
  * An annotation and reflection based utility class serving as a façade for the Apache POI APIs.
  *
- * <p>This utility class provides a single entry point, {@link PoijoUtils#map(Workbook, Object)},
- * which maps nested POJOs to Apache POI {@link Workbook} objects, greatly reducing interaction with
- * the Apache POI APIs and off-by-one indexing errors. At its heart, it uses reflection and various
+ * <p>This utility class provides a single entry point, {@link Poijo#map(Workbook, Object)}, which
+ * maps nested POJOs to Apache POI {@link Workbook} objects, greatly reducing interaction with the
+ * Apache POI APIs and off-by-one indexing errors. At its heart, it uses reflection and various
  * custom annotations ({@link io.github.priyavrat_misra.annotations.Workbook}, {@link
  * io.github.priyavrat_misra.annotations.Sheet}, {@link
  * io.github.priyavrat_misra.annotations.Column}, and {@link
@@ -106,7 +106,7 @@ import org.slf4j.LoggerFactory;
  *         // map data
  *         try (Workbook wb = new XSSFWorkbook();
  *             OutputStream fileOut = Files.newOutputStream(Paths.get("workbook.xlsx"))) {
- *           PoijoUtils.map(wb, dto).write(fileOut);
+ *           Poijo.map(wb, dto).write(fileOut);
  *         } catch (IOException e) {
  *           throw new RuntimeException(e);
  *         }
@@ -148,8 +148,8 @@ import org.slf4j.LoggerFactory;
  *
  * <p>If some field is annotated with {@link Column#name()}, it is used as the column title.
  * Otherwise, the field's name is split by camel case, capitalized, joined using {@link
- * io.github.priyavrat_misra.annotations.Workbook#delimiter()} (default is {@link PoijoUtils#SPACE})
- * and used as the title. The same applies for {@link
+ * io.github.priyavrat_misra.annotations.Workbook#delimiter()} (default is {@link Poijo#SPACE}) and
+ * used as the title. The same applies for {@link
  * io.github.priyavrat_misra.annotations.Sheet#name()} in the base class.
  *
  * <p>Note: Only {@code public} fields are considered because in order to access other kind of
@@ -188,11 +188,13 @@ import org.slf4j.LoggerFactory;
  * @see io.github.priyavrat_misra.annotations.Order
  * @author Priyavrat Misra
  */
-public class PoijoUtils {
+public class Poijo {
   public static final String SPACE = " ";
   public static final String EMPTY = "";
 
-  private static final Logger logger = LoggerFactory.getLogger(PoijoUtils.class);
+  private static final Logger logger = LoggerFactory.getLogger(Poijo.class);
+
+  private Poijo() {}
 
   /**
    * Maps {@code object} to {@code workbook}.
@@ -506,7 +508,7 @@ public class PoijoUtils {
    *
    * @param rowClass class of a sheet's element
    * @return list of eligible (and possibly ordered) sheet names as string
-   * @see PoijoUtils#getEligibleSheetFieldNames(Class)
+   * @see Poijo#getEligibleSheetFieldNames(Class)
    */
   private static List<String> getEligibleColumnNames(Class<?> rowClass) {
     final List<String> eligibleColumnNames =
@@ -543,7 +545,7 @@ public class PoijoUtils {
 
   /**
    * {@link NoSuchFieldException} is ignored because it will never arise due to {@link
-   * PoijoUtils#getEligibleColumnNames(Class)} which only returns accessible fields.
+   * Poijo#getEligibleColumnNames(Class)} which only returns accessible fields.
    */
   private static Field getField(Class<?> clazz, String fieldName) {
     try {
@@ -556,7 +558,7 @@ public class PoijoUtils {
 
   /**
    * {@link IllegalAccessException} is ignored because it will never arise due to {@link
-   * PoijoUtils#getEligibleColumnNames(Class)} which only returns accessible fields.
+   * Poijo#getEligibleColumnNames(Class)} which only returns accessible fields.
    */
   private static Object getFieldValue(Field field, Object obj) {
     try {
