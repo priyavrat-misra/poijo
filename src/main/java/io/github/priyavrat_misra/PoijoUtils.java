@@ -11,6 +11,8 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.WorkbookUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * An annotation and reflection based utility class serving as a façade for the Apache POI APIs.
@@ -190,6 +192,8 @@ public class PoijoUtils {
   public static final String SPACE = " ";
   public static final String EMPTY = "";
 
+  private static final Logger logger = LoggerFactory.getLogger(PoijoUtils.class);
+
   /**
    * Maps {@code object} to {@code workbook}.
    *
@@ -198,36 +202,46 @@ public class PoijoUtils {
    * @return {@code workbook} with the {@code object mapped}
    * @param <T> type parameter for {@code object}
    * @throws NullPointerException if {@code workbook} or {@code object} is {@code null}
-   * @throws IllegalArgumentException if {@code object} is not annotated with {@link
+   * @throws IllegalArgumentException if {@link T} is not annotated with {@link
    *     io.github.priyavrat_misra.annotations.Workbook}
    */
   public static <T> Workbook map(Workbook workbook, T object) {
+    final long startTime = System.currentTimeMillis();
     if (workbook == null || object == null) {
+      logger.error("workbook or object is null");
       throw new NullPointerException("workbook or object is null");
     }
     if (object
         .getClass()
         .isAnnotationPresent(io.github.priyavrat_misra.annotations.Workbook.class)) {
+      logger.info("map start");
       populateWorkbook(workbook, object);
     } else {
+      logger.error(
+          "{} is not annotated with io.github.priyavrat_misra.annotations.Workbook",
+          object.getClass().getName());
       throw new IllegalArgumentException(
-          "Passed object is not annotated with io.github.priyavrat_misra.annotations.Workbook");
+          "Passed object's class is not annotated with io.github.priyavrat_misra.annotations.Workbook");
     }
+    logger.info("map complete, time taken: {} ms", System.currentTimeMillis() - startTime);
     return workbook;
   }
 
   /** Gets the fields eligible for sheets, for each creates a sheet and populates the data. */
   private static <T> void populateWorkbook(Workbook workbook, T object) {
+    logger.info("populateWorkbook start");
     final Class<?> workbookClass = object.getClass();
     final io.github.priyavrat_misra.annotations.Workbook workbookAnnotation =
         workbookClass.getDeclaredAnnotation(io.github.priyavrat_misra.annotations.Workbook.class);
     final List<String> sheetFieldNames = getEligibleSheetFieldNames(workbookClass);
+    logger.debug("populateWorkbook sheetFieldNames {}", sheetFieldNames);
     for (String sheetFieldName : sheetFieldNames) {
       final Field sheetField = getField(workbookClass, sheetFieldName);
       assert sheetField != null;
       final Object rows = getFieldValue(sheetField, object);
       if (rows != null) {
         final Sheet sheet = createSheet(sheetField, workbook, sheetFieldName, workbookAnnotation);
+        logger.info("new sheet created with name {}", sheet.getSheetName());
         populateSheet(
             sheet,
             (Collection<?>) rows,
@@ -235,6 +249,8 @@ public class PoijoUtils {
             0,
             workbookAnnotation,
             sheetField.getDeclaredAnnotation(Column.class));
+      } else {
+        logger.warn("No rows found for sheetFieldName {}, skipping sheet creation", sheetFieldName);
       }
     }
   }
@@ -257,10 +273,16 @@ public class PoijoUtils {
             .map(Field::getName)
             .collect(Collectors.toList());
     if (workbookClass.isAnnotationPresent(Order.class)) {
+      logger.debug(
+          "workbookClass {} is annotated with @Order, considering eligible fields from @Order.",
+          workbookClass.getName());
       return Arrays.stream(workbookClass.getAnnotation(Order.class).value())
           .filter(eligibleFieldNames::contains)
           .collect(Collectors.toList());
     } else {
+      logger.debug(
+          "workbookClass {} is not annotated with @Order, considering eligible fields from the class.",
+          workbookClass.getName());
       return eligibleFieldNames;
     }
   }
@@ -323,6 +345,7 @@ public class PoijoUtils {
         rows.stream().filter(Objects::nonNull).findFirst().map(Object::getClass).orElse(null);
     if (rowClass != null) {
       if (isSupportedPrimitive(rowClass)) {
+        logger.info("populating new column {} in sheet {}", titlePath, sheet.getSheetName());
         columnIndex = populateColumn(sheet, rows, titlePath, columnIndex, columnAnnotation);
       } else if (Collection.class.isAssignableFrom(rowClass)) {
         columnIndex =
@@ -422,6 +445,8 @@ public class PoijoUtils {
             .max(Comparator.comparingInt(Collection::size))
             .orElse(Collections.emptyList())
             .size();
+    logger.debug(
+        "'{}' max collection size is {}, recursively populating each index", titlePath, maxSize);
     for (int index = 0; index < maxSize; ++index) {
       final int fIndex = index;
       columnIndex =
@@ -448,6 +473,7 @@ public class PoijoUtils {
       io.github.priyavrat_misra.annotations.Workbook workbookAnnotation,
       Class<?> rowClass) {
     final List<String> columnNames = getEligibleColumnNames(rowClass);
+    logger.debug("populateObject columnNames {}", columnNames);
     for (String columnName : columnNames) {
       final Field field = getField(rowClass, columnName);
       assert field != null;
@@ -496,10 +522,16 @@ public class PoijoUtils {
             .map(Field::getName)
             .collect(Collectors.toList());
     if (rowClass.isAnnotationPresent(Order.class)) {
+      logger.debug(
+          "rowClass {} is annotated with @Order, considering eligible fields from @Order.",
+          rowClass.getName());
       return Arrays.stream(rowClass.getAnnotation(Order.class).value())
           .filter(eligibleColumnNames::contains)
           .collect(Collectors.toList());
     } else {
+      logger.debug(
+          "rowClass {} is not annotated with @Order, considering eligible fields from the class.",
+          rowClass.getName());
       return eligibleColumnNames;
     }
   }
@@ -515,6 +547,7 @@ public class PoijoUtils {
    */
   private static Field getField(Class<?> clazz, String fieldName) {
     try {
+      logger.debug("Getting field {} from {}", fieldName, clazz);
       return clazz.getDeclaredField(fieldName);
     } catch (NoSuchFieldException ignored) {
       return null;
@@ -527,6 +560,7 @@ public class PoijoUtils {
    */
   private static Object getFieldValue(Field field, Object obj) {
     try {
+      logger.debug("Getting value from {}", field.getName());
       return obj != null ? field.get(obj) : null;
     } catch (IllegalAccessException ignored) {
       return null;
