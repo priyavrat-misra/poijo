@@ -41,17 +41,13 @@ import org.slf4j.LoggerFactory;
  * <p>Say there are two classes {@code Author} and {@code Book}, and a base class, {@code DTO}
  * (should be annotated with {@link io.github.priyavrat_misra.annotations.Workbook}).
  *
- * <pre>{@code
- * public class Author {
- *     public String name;
- *     public List<String> genres;
- *
- *     public Author(String name, List<String> genres) {
- *         this.name = name;
- *         this.genres = genres;
- *     }
+ * <pre><code>
+ * {@literal @}Workbook // to indicate this class will be used as a Workbook
+ * public class DTO {
+ *     // custom sheet name can be provided using {@literal @}Sheet(name = "...")
+ *     public Set&lt;Book&gt; books;
  * }
- * }</pre>
+ * </code></pre>
  *
  * <pre><code>
  * {@literal @}Order({"title", "author", "publicationDate", "price"}) // column ordering
@@ -64,10 +60,10 @@ import org.slf4j.LoggerFactory;
  *     {@literal @}Column(numberFormat = "[$$-409]#,##0;-[$$-409]#,##0") // custom number format
  *     public double price;
  *
- *     {@literal @}Column(name = "Date of Publication", numberFormat = "dd/MM/yyyy")
+ *     {@literal @}Column(name = "Date of Publication", numberFormat = "dd/MM/yyyy") // custom title
  *     public LocalDate publicationDate;
  *
- *     public Book(String title, Author author, double price, Date publicationDate) {
+ *     public Book(String title, Author author, double price, LocalDate publicationDate) {
  *         this.title = title;
  *         this.author = author;
  *         this.price = price;
@@ -76,13 +72,17 @@ import org.slf4j.LoggerFactory;
  * }
  * </code></pre>
  *
- * <pre><code>
- * {@literal @}Workbook // to indicate this class will be used as a Workbook
- * public class DTO {
- *     // custom sheet name can be provided using {@literal @}Sheet(name = "...")
- *     public Set&lt;Book&gt; books;
+ * <pre>{@code
+ * public class Author {
+ *     public String name;
+ *     public List<String> genres;
+ *
+ *     public Author(String name, List<String> genres) {
+ *         this.name = name;
+ *         this.genres = genres;
+ *     }
  * }
- * </code></pre>
+ * }</pre>
  *
  * <p>Now all it takes is something as simple as the following:
  *
@@ -275,15 +275,12 @@ public class Poijo {
             .map(Field::getName)
             .collect(Collectors.toList());
     if (workbookClass.isAnnotationPresent(Order.class)) {
-      logger.debug(
-          "workbookClass {} is annotated with @Order, considering eligible fields from @Order.",
-          workbookClass.getName());
       return Arrays.stream(workbookClass.getAnnotation(Order.class).value())
           .filter(eligibleFieldNames::contains)
           .collect(Collectors.toList());
     } else {
-      logger.debug(
-          "workbookClass {} is not annotated with @Order, considering eligible fields from the class.",
+      logger.warn(
+          "workbookClass {} is not annotated with @Order, sheets might have a random order",
           workbookClass.getName());
       return eligibleFieldNames;
     }
@@ -524,16 +521,13 @@ public class Poijo {
             .map(Field::getName)
             .collect(Collectors.toList());
     if (rowClass.isAnnotationPresent(Order.class)) {
-      logger.debug(
-          "rowClass {} is annotated with @Order, considering eligible fields from @Order.",
-          rowClass.getName());
       return Arrays.stream(rowClass.getAnnotation(Order.class).value())
           .filter(eligibleColumnNames::contains)
           .collect(Collectors.toList());
     } else {
-      logger.debug(
-          "rowClass {} is not annotated with @Order, considering eligible fields from the class.",
-          rowClass.getName());
+      logger.warn(
+              "rowClass {} is not annotated with @Order, columns might have a random order",
+              rowClass.getName());
       return eligibleColumnNames;
     }
   }
