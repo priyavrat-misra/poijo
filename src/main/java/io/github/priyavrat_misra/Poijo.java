@@ -199,34 +199,52 @@ public class Poijo {
   /**
    * Maps {@code object} to {@code workbook}.
    *
-   * @param workbook a {@link Workbook} object
-   * @param object an object to be mapped to {@code workbook}
+   * @param workbook a non-null {@link Workbook} object annotated with {@link
+   *     io.github.priyavrat_misra.annotations.Workbook}
+   * @param object a non-null object to be mapped to {@code workbook}
    * @return {@code workbook} with the {@code object mapped}
+   * @param <T> type parameter for {@code object}
+   */
+  public static <T> Workbook map(Workbook workbook, T object) {
+    final long startTime = System.currentTimeMillis();
+    validateWorkbookAndObject(workbook, object);
+    logger.info("map start");
+    populateWorkbook(workbook, object);
+    logger.info("map complete, time taken: {} ms", System.currentTimeMillis() - startTime);
+    return workbook;
+  }
+
+  /**
+   * Validates workbook and object.
+   *
+   * @param workbook the provided workbook
+   * @param object the provided object
    * @param <T> type parameter for {@code object}
    * @throws NullPointerException if {@code workbook} or {@code object} is {@code null}
    * @throws IllegalArgumentException if {@link T} is not annotated with {@link
    *     io.github.priyavrat_misra.annotations.Workbook}
    */
-  public static <T> Workbook map(Workbook workbook, T object) {
-    final long startTime = System.currentTimeMillis();
-    if (workbook == null || object == null) {
-      logger.error("workbook or object is null");
-      throw new NullPointerException("workbook or object is null");
+  private static <T> void validateWorkbookAndObject(Workbook workbook, T object) {
+    if (workbook == null && object == null) {
+      logger.error("workbook and object are null");
+      throw new NullPointerException("workbook and object are null");
+    } else if (workbook == null) {
+      logger.error("workbook is null");
+      throw new NullPointerException("workbook is null");
+    } else if (object == null) {
+      logger.error("object is null");
+      throw new NullPointerException("object is null");
     }
-    if (object
+
+    if (!object
         .getClass()
         .isAnnotationPresent(io.github.priyavrat_misra.annotations.Workbook.class)) {
-      logger.info("map start");
-      populateWorkbook(workbook, object);
-    } else {
       logger.error(
           "{} is not annotated with io.github.priyavrat_misra.annotations.Workbook",
           object.getClass().getName());
       throw new IllegalArgumentException(
           "Passed object's class is not annotated with io.github.priyavrat_misra.annotations.Workbook");
     }
-    logger.info("map complete, time taken: {} ms", System.currentTimeMillis() - startTime);
-    return workbook;
   }
 
   /** Gets the fields eligible for sheets, for each creates a sheet and populates the data. */
@@ -526,8 +544,8 @@ public class Poijo {
           .collect(Collectors.toList());
     } else {
       logger.warn(
-              "rowClass {} is not annotated with @Order, columns might have a random order",
-              rowClass.getName());
+          "rowClass {} is not annotated with @Order, columns might have a random order",
+          rowClass.getName());
       return eligibleColumnNames;
     }
   }
