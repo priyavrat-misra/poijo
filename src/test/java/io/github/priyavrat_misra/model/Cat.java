@@ -3,7 +3,7 @@ package io.github.priyavrat_misra.model;
 import io.github.priyavrat_misra.annotations.Column;
 import io.github.priyavrat_misra.annotations.Order;
 
-@Order({"age", "color"})
+@Order({"name", "age", "color"})
 public class Cat {
   public String name;
   public int age;

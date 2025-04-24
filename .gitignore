@@ -17,3 +17,8 @@ buildNumber.properties
 .classpath
 .settings
 .idea
+*.json
+*.csv
+*.xls
+*.xlsx
+*.ods

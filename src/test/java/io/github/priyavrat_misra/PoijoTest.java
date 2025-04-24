@@ -1,24 +1,31 @@
 package io.github.priyavrat_misra;
 
-import static org.assertj.core.api.Assertions.*;
+import static java.util.stream.Collectors.toMap;
 
 import io.github.priyavrat_misra.model.*;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.stream.Stream;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-@Tag("unit")
 class PoijoTest {
+
   static Cat cat;
   static Dog dog;
   static Store store1, store2;
   static User user1, user2, user3, user4, user5;
 
   @BeforeAll
-  static void setup() {
+  static void setUp() {
     cat = new Cat("Meow", 3, "Black");
 
     dog = new Dog("Bark", 2);
@@ -37,6 +44,7 @@ class PoijoTest {
             Arrays.asList(
                 new Employee(1, "Alice", "Manager"), new Employee(2, "Bob", "Sales Associate")),
             Arrays.asList("9:00 AM - 5:00 PM", "9:00 AM - 6:00 PM", "10:00 AM - 4:00 PM"));
+
     store2 = new Store("Apparel", null, null, null, null);
 
     user1 =
@@ -91,29 +99,36 @@ class PoijoTest {
   }
 
   @Test
-  void nullWorkbookOrNullObjectShouldThrowNullPointerException() {
-    assertThatThrownBy(() -> Poijo.map(null, null))
-        .as("null workbook and null object")
-        .isInstanceOf(NullPointerException.class)
-        .hasMessage("workbook and object are null");
+  void exampleUsage() {
+    try (Workbook wb = new XSSFWorkbook();
+        OutputStream fileOut = Files.newOutputStream(Paths.get("workbook.xlsx"))) {
+      WorkbookDto workbookDto = new WorkbookDto();
+      workbookDto.setCats(Collections.singleton(cat));
+      workbookDto.setPetDogs(Collections.singletonList(dog));
+      workbookDto.setStores(Arrays.asList(store1, store2));
+      workbookDto.setUsers(Arrays.asList(user1, user2, user3, user4, user5));
 
-    assertThatThrownBy(() -> Poijo.map(null, new Object()))
-        .as("null workbook")
-        .isInstanceOf(NullPointerException.class)
-        .hasMessage("workbook is null");
-
-    assertThatThrownBy(() -> Poijo.map(new XSSFWorkbook(), null).close())
-        .as("null object")
-        .isInstanceOf(NullPointerException.class)
-        .hasMessage("object is null");
-  }
-
-  @Test
-  void objectNotAnnotatedWithWorkbookShouldThrowIllegalArgumentException() {
-    assertThatThrownBy(() -> Poijo.map(new XSSFWorkbook(), new Object()).close())
-        .as("object not annotated with @Workbook")
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage(
-            "Passed object's class is not annotated with io.github.priyavrat_misra.annotations.Workbook");
+      Poijo.using(wb)
+          .map(workbookDto)
+          .applyHeaderStyles(
+              Stream.of(
+                      new SimpleEntry<>(
+                          CellPropertyType.FILL_FOREGROUND_COLOR,
+                          IndexedColors.GREY_25_PERCENT.getIndex()),
+                      new SimpleEntry<>(CellPropertyType.ALIGNMENT, HorizontalAlignment.CENTER),
+                      new SimpleEntry<>(
+                          CellPropertyType.FILL_PATTERN, FillPatternType.SOLID_FOREGROUND))
+                  .collect(toMap(SimpleEntry::getKey, SimpleEntry::getValue)))
+          .applyBodyStyles(
+              Stream.of(
+                      new SimpleEntry<>(
+                          CellPropertyType.FILL_FOREGROUND_COLOR, IndexedColors.WHITE1.getIndex()),
+                      new SimpleEntry<>(
+                          CellPropertyType.FILL_PATTERN, FillPatternType.SOLID_FOREGROUND))
+                  .collect(toMap(SimpleEntry::getKey, SimpleEntry::getValue)))
+          .write(fileOut);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

@@ -72,7 +72,7 @@ If you're wondering about Apache POI's name, it has a rather *punny* origin. POI
 > ```java
 > import org.apache.poi.ss.usermodel.Workbook;
 > import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-> import io.github.priyavrat_misra.Poijo;
+> import io.github.priyavrat_misra.PoijoUtils;
 > 
 > import java.io.OutputStream;
 > import java.nio.file.Files;
@@ -98,7 +98,7 @@ If you're wondering about Apache POI's name, it has a rather *punny* origin. POI
 > 
 >     try (Workbook workbook = new XSSFWorkbook();
 >         OutputStream fileOut = Files.newOutputStream(Paths.get("workbook.xlsx"))) {
->       Poijo.map(workbook, dto).write(fileOut); // the magic happens here!
+>       PoijoUtils.map(workbook, dto).write(fileOut); // the magic happens here!
 >     } catch (Exception e) {
 >       throw new RuntimeException(e);
 >     }

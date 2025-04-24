@@ -1,6 +1,6 @@
 package io.github.priyavrat_misra.annotations;
 
-import io.github.priyavrat_misra.Poijo;
+import io.github.priyavrat_misra.PoijoUtils;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -42,12 +42,12 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Column {
   /**
-   * Specifies the name of the column. The default value is {@link Poijo#EMPTY}, which indicates
-   * that the column name will be generated from the field name automatically.
+   * Specifies the name of the column. The default value is {@link PoijoUtils#EMPTY}, which
+   * indicates that the column name will be generated from the field name automatically.
    *
    * @return the name of the column
    */
-  String name() default Poijo.EMPTY;
+  String name() default PoijoUtils.EMPTY;
 
   /**
    * Specifies the number format using which the column elements are to be formatted. Useful for
@@ -57,10 +57,10 @@ public @interface Column {
    * @see <a href="https://www.ablebits.com/office-addins-blog/custom-excel-number-format/"
    *     target="_blank">Custom Excel number format</a>
    */
-  String numberFormat() default Poijo.EMPTY;
+  String numberFormat() default PoijoUtils.EMPTY;
 
   /**
-   * An indicator flag to allow {@link Poijo} to traverse nested objects.
+   * An indicator flag to allow {@link PoijoUtils} to traverse nested objects.
    *
    * @return {@code true}, if annotated with {@code true}. Otherwise, {@code false}.
    */
