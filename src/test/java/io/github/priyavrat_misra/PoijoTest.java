@@ -1,6 +1,6 @@
 package io.github.priyavrat_misra;
 
-import static java.util.stream.Collectors.toMap;
+import static org.assertj.core.api.Assertions.*;
 
 import io.github.priyavrat_misra.model.*;
 import java.io.IOException;
@@ -8,21 +8,27 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDate;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.stream.Stream;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+@Tag("unit")
 class PoijoTest {
 
   static Cat cat;
   static Dog dog;
   static Store store1, store2;
   static User user1, user2, user3, user4, user5;
+
+  static Map<CellPropertyType, Object> commonStyleProperties = new HashMap<>();
+  static Map<CellPropertyType, Object> headerStyleProperties = new HashMap<>();
+  static Map<CellPropertyType, Object> bodyStyleProperties = new HashMap<>();
 
   @BeforeAll
   static void setUp() {
@@ -96,11 +102,31 @@ class PoijoTest {
             new Address("654 Maple Ave", "San Francisco", "CA", 941011234),
             LocalDate.parse("1974-09-28"),
             true);
+
+    commonStyleProperties.put(CellPropertyType.BORDER_LEFT, BorderStyle.THIN);
+    commonStyleProperties.put(
+        CellPropertyType.LEFT_BORDER_COLOR, IndexedColors.GREY_50_PERCENT.getIndex());
+    commonStyleProperties.put(CellPropertyType.BORDER_RIGHT, BorderStyle.THIN);
+    commonStyleProperties.put(
+        CellPropertyType.RIGHT_BORDER_COLOR, IndexedColors.GREY_50_PERCENT.getIndex());
+    commonStyleProperties.put(CellPropertyType.FILL_PATTERN, FillPatternType.SOLID_FOREGROUND);
+    commonStyleProperties.put(CellPropertyType.ALIGNMENT, HorizontalAlignment.CENTER);
+
+    headerStyleProperties.put(CellPropertyType.BORDER_TOP, BorderStyle.THIN);
+    headerStyleProperties.put(
+        CellPropertyType.TOP_BORDER_COLOR, IndexedColors.GREY_50_PERCENT.getIndex());
+    headerStyleProperties.put(CellPropertyType.BORDER_BOTTOM, BorderStyle.THIN);
+    headerStyleProperties.put(
+        CellPropertyType.BOTTOM_BORDER_COLOR, IndexedColors.GREY_50_PERCENT.getIndex());
+    headerStyleProperties.put(
+        CellPropertyType.FILL_FOREGROUND_COLOR, IndexedColors.GREY_25_PERCENT.getIndex());
+
+    bodyStyleProperties.put(CellPropertyType.FILL_FOREGROUND_COLOR, IndexedColors.WHITE.getIndex());
   }
 
   @Test
   void exampleUsage() {
-    try (Workbook wb = new XSSFWorkbook();
+    try (Workbook workbook = new XSSFWorkbook();
         OutputStream fileOut = Files.newOutputStream(Paths.get("workbook.xlsx"))) {
       WorkbookDto workbookDto = new WorkbookDto();
       workbookDto.setCats(Collections.singleton(cat));
@@ -108,27 +134,44 @@ class PoijoTest {
       workbookDto.setStores(Arrays.asList(store1, store2));
       workbookDto.setUsers(Arrays.asList(user1, user2, user3, user4, user5));
 
-      Poijo.using(wb)
+      Poijo.using(workbook)
           .map(workbookDto)
-          .applyHeaderStyles(
-              Stream.of(
-                      new SimpleEntry<>(
-                          CellPropertyType.FILL_FOREGROUND_COLOR,
-                          IndexedColors.GREY_25_PERCENT.getIndex()),
-                      new SimpleEntry<>(CellPropertyType.ALIGNMENT, HorizontalAlignment.CENTER),
-                      new SimpleEntry<>(
-                          CellPropertyType.FILL_PATTERN, FillPatternType.SOLID_FOREGROUND))
-                  .collect(toMap(SimpleEntry::getKey, SimpleEntry::getValue)))
-          .applyBodyStyles(
-              Stream.of(
-                      new SimpleEntry<>(
-                          CellPropertyType.FILL_FOREGROUND_COLOR, IndexedColors.WHITE1.getIndex()),
-                      new SimpleEntry<>(
-                          CellPropertyType.FILL_PATTERN, FillPatternType.SOLID_FOREGROUND))
-                  .collect(toMap(SimpleEntry::getKey, SimpleEntry::getValue)))
+          .applyCellStyleProperties(commonStyleProperties)
+          .applyCellStylePropertiesToHeader(headerStyleProperties)
+          .applyCellStylePropertiesToBody(bodyStyleProperties)
           .write(fileOut);
+
     } catch (IOException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  @Test
+  void nullWorkbookShouldThrowNPE() {
+    assertThatThrownBy(() -> Poijo.using(null))
+        .as("null workbook throw NPE")
+        .isInstanceOf(NullPointerException.class)
+        .hasMessage("workbook cannot be null");
+  }
+
+  @Test
+  void nullObjectShouldThrowNPE() throws IOException {
+    try (Workbook workbook = new XSSFWorkbook()) {
+      assertThatThrownBy(() -> Poijo.using(workbook).map(null))
+          .as("null object throw NPE")
+          .isInstanceOf(NullPointerException.class)
+          .hasMessage("object cannot be null");
+    }
+  }
+
+  @Test
+  void objectNotAnnotatedWithWorkbookShouldThrowIllegalArgumentException() throws IOException {
+    try (Workbook workbook = new XSSFWorkbook()) {
+      assertThatThrownBy(() -> Poijo.using(workbook).map(new Object()))
+          .as("object without @Workbook throw IllegalArgumentException")
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessage(
+              "Passed object's class is not annotated with io.github.priyavrat_misra.annotations.Workbook");
     }
   }
 }

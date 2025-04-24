@@ -96,33 +96,6 @@ class PoijoUtilsTest {
   }
 
   @Test
-  void nullWorkbookOrNullObjectShouldThrowNullPointerException() {
-    assertThatThrownBy(() -> PoijoUtils.map(null, null))
-        .as("null workbook and null object throw NPE")
-        .isInstanceOf(NullPointerException.class)
-        .hasMessage("workbook and object are null");
-
-    assertThatThrownBy(() -> PoijoUtils.map(null, new Object()))
-        .as("null workbook throw NPE")
-        .isInstanceOf(NullPointerException.class)
-        .hasMessage("workbook is null");
-
-    assertThatThrownBy(() -> PoijoUtils.map(new XSSFWorkbook(), null).close())
-        .as("null object throw NPE")
-        .isInstanceOf(NullPointerException.class)
-        .hasMessage("object is null");
-  }
-
-  @Test
-  void objectNotAnnotatedWithWorkbookShouldThrowIllegalArgumentException() {
-    assertThatThrownBy(() -> PoijoUtils.map(new XSSFWorkbook(), new Object()).close())
-        .as("object without @Workbook throw IllegalArgumentException")
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage(
-            "Passed object's class is not annotated with io.github.priyavrat_misra.annotations.Workbook");
-  }
-
-  @Test
   void titleRowShouldMatch() throws IOException {
     WorkbookDto workbookDto = new WorkbookDto();
     workbookDto.setUsers(Collections.singletonList(user1));
