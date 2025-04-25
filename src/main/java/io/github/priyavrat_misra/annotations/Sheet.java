@@ -1,6 +1,6 @@
 package io.github.priyavrat_misra.annotations;
 
-import io.github.priyavrat_misra.PoijoUtils;
+import io.github.priyavrat_misra.Poijo;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -30,10 +30,10 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Sheet {
   /**
-   * Specifies the name of the sheet in the workbook. The default value is {@link PoijoUtils#EMPTY},
+   * Specifies the name of the sheet in the workbook. The default value is {@link Poijo#EMPTY},
    * which indicates that the sheet name will be generated from the field name automatically.
    *
    * @return the name of the sheet
    */
-  String name() default PoijoUtils.EMPTY;
+  String name() default Poijo.EMPTY;
 }

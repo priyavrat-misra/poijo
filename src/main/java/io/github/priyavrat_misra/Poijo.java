@@ -11,10 +11,14 @@ import org.apache.poi.ss.util.CellUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/** A façade with a fluent interface to the Apache POI APIs. */
 public class Poijo {
-  private final Workbook workbook;
+  public static final String SPACE = " ";
+  public static final String EMPTY = "";
 
   private static final Logger logger = LoggerFactory.getLogger(Poijo.class);
+
+  private final Workbook workbook;
 
   private Poijo(Workbook workbook) {
     this.workbook = workbook;
@@ -66,9 +70,7 @@ public class Poijo {
   public Poijo applyCellStylePropertiesToHeader(Map<CellPropertyType, Object> styles) {
     workbook.forEach(
         sheet ->
-            sheet
-                .getRow(sheet.getFirstRowNum())
-                .forEach(cell -> CellUtil.setCellStylePropertiesEnum(cell, styles)));
+            sheet.getRow(0).forEach(cell -> CellUtil.setCellStylePropertiesEnum(cell, styles)));
     return this;
   }
 

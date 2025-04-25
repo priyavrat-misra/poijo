@@ -1,5 +1,7 @@
 package io.github.priyavrat_misra;
 
+import static io.github.priyavrat_misra.Poijo.EMPTY;
+
 import io.github.priyavrat_misra.annotations.Column;
 import io.github.priyavrat_misra.annotations.Order;
 import java.lang.reflect.Field;
@@ -147,8 +149,8 @@ import org.slf4j.LoggerFactory;
  *
  * <p>If some field is annotated with {@link Column#name()}, it is used as the column title.
  * Otherwise, the field's name is split by camel case, capitalized, joined using {@link
- * io.github.priyavrat_misra.annotations.Workbook#delimiter()} (default is {@link PoijoUtils#SPACE})
- * and used as the title. The same applies for {@link
+ * io.github.priyavrat_misra.annotations.Workbook#delimiter()} (default is {@link Poijo#SPACE}) and
+ * used as the title. The same applies for {@link
  * io.github.priyavrat_misra.annotations.Sheet#name()} in the base class.
  *
  * <p>Note: Only {@code public} fields are considered because in order to access other kind of
@@ -187,9 +189,7 @@ import org.slf4j.LoggerFactory;
  * @see io.github.priyavrat_misra.annotations.Order
  * @author Priyavrat Misra
  */
-public class PoijoUtils {
-  public static final String SPACE = " ";
-  public static final String EMPTY = "";
+class PoijoUtils {
 
   private static final Logger logger = LoggerFactory.getLogger(PoijoUtils.class);
 
@@ -204,7 +204,7 @@ public class PoijoUtils {
    * @return {@code workbook} with the {@code object mapped}
    * @param <T> type parameter for {@code object}
    */
-  public static <T> Workbook map(Workbook workbook, T object) {
+  static <T> Workbook map(Workbook workbook, T object) {
     final long startTime = System.currentTimeMillis();
     logger.info("map start");
     populateWorkbook(Objects.requireNonNull(workbook), object);
