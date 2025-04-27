@@ -15,7 +15,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A façade with a fluent interface to the Apache POI APIs.
+ * A Java library featuring a fluent, annotation-driven API for working with Excel spreadsheets,
+ * built atop Apache POI. Providing a cleaner approach to map, configure, style, and generate
+ * workbooks with minimal boilerplate.
  *
  * @author Priyavrat Misra
  */
