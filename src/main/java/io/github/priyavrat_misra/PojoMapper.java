@@ -49,8 +49,7 @@ class PojoMapper {
       final Field sheetField = getField(workbookClass, sheetFieldName);
       assert sheetField != null;
       final Collection<?> rows = (Collection<?>) getFieldValue(sheetField, object);
-      assert rows != null;
-      if (!rows.isEmpty()) {
+      if (rows != null && !rows.isEmpty()) {
         final Sheet sheet = createSheet(sheetField, workbook, sheetFieldName, workbookAnnotation);
         logger.info("new sheet created with name {}", sheet.getSheetName());
         populateSheet(

@@ -1,12 +1,13 @@
 package io.github.priyavrat_misra.model;
 
+import io.github.priyavrat_misra.annotations.Order;
 import io.github.priyavrat_misra.annotations.Sheet;
 import io.github.priyavrat_misra.annotations.Workbook;
 import java.util.List;
 import java.util.Set;
 
 @Workbook
-// @Order({"stores"})
+@Order({"cats", "petDogs", "users", "stores"})
 public class WorkbookDto {
   @Sheet(name = "Sheet: Cats")
   public Set<Cat> cats;
@@ -16,7 +17,7 @@ public class WorkbookDto {
   @Sheet(name = "Sheet: Stores")
   public List<Store> stores;
 
-  public List<User> users;
+  @Sheet public List<User> users;
 
   public void setCats(Set<Cat> cats) {
     this.cats = cats;
