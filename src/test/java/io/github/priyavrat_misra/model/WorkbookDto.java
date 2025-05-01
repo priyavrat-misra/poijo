@@ -19,19 +19,28 @@ public class WorkbookDto {
 
   @Sheet public List<User> users;
 
-  public void setCats(Set<Cat> cats) {
+  public Set<Cat> getCats() {
+    return cats;
+  }
+
+  public List<Dog> getPetDogs() {
+    return petDogs;
+  }
+
+  public List<Store> getStores() {
+    return stores;
+  }
+
+  public List<User> getUsers() {
+    return users;
+  }
+
+  public WorkbookDto() {}
+
+  public WorkbookDto(Set<Cat> cats, List<Dog> petDogs, List<Store> stores, List<User> users) {
     this.cats = cats;
-  }
-
-  public void setPetDogs(List<Dog> petDogs) {
     this.petDogs = petDogs;
-  }
-
-  public void setStores(List<Store> stores) {
     this.stores = stores;
-  }
-
-  public void setUsers(List<User> users) {
     this.users = users;
   }
 }
