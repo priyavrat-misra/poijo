@@ -8,7 +8,7 @@ import java.util.Set;
 
 @Workbook
 @Order({"cats", "petDogs", "users", "stores"})
-public class WorkbookDto {
+public class WorkbookDto1 {
   @Sheet(name = "Sheet: Cats")
   public Set<Cat> cats;
 
@@ -35,9 +35,9 @@ public class WorkbookDto {
     return users;
   }
 
-  public WorkbookDto() {}
+  public WorkbookDto1() {}
 
-  public WorkbookDto(Set<Cat> cats, List<Dog> petDogs, List<Store> stores, List<User> users) {
+  public WorkbookDto1(Set<Cat> cats, List<Dog> petDogs, List<Store> stores, List<User> users) {
     this.cats = cats;
     this.petDogs = petDogs;
     this.stores = stores;

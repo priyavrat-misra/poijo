@@ -3,15 +3,20 @@ package io.github.priyavrat_misra;
 import static org.assertj.core.api.Assertions.*;
 
 import io.github.priyavrat_misra.model.*;
+
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.WorkbookUtil;
+import org.apache.poi.xssf.usermodel.XSSFFont;
+import org.apache.poi.xssf.usermodel.XSSFRichTextString;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -26,13 +31,16 @@ class PoijoTest {
   private final int USER_SHEET_ID = 2;
   private final int STORE_SHEET_ID = 3;
 
-  private static Workbook workbook;
-  private static WorkbookDto workbookDto;
+  private static Workbook workbook1;
+  private static WorkbookDto1 workbookDto1;
+
+  private static final Workbook workbook2 = new XSSFWorkbook();
+  private static WorkbookDto2 workbookDto2;
 
   @BeforeAll
   static void setUp() {
-    workbookDto =
-        new WorkbookDto(
+    workbookDto1 =
+        new WorkbookDto1(
             Collections.singleton(new Cat("Meow", 3, "Black")),
             Collections.singletonList(new Dog("Bark", 2, 10)),
             Arrays.asList(
@@ -118,18 +126,47 @@ class PoijoTest {
     Map<CellPropertyType, Object> bodyStyleProperties = new HashMap<>();
     bodyStyleProperties.put(CellPropertyType.FILL_FOREGROUND_COLOR, IndexedColors.WHITE.getIndex());
 
-    workbook =
+    workbook1 =
         Poijo.using(new XSSFWorkbook())
-            .map(workbookDto)
+            .map(workbookDto1)
             .applyCellStyleProperties(commonStyleProperties)
             .applyCellStylePropertiesToHeader(headerStyleProperties)
             .applyCellStylePropertiesToBody(bodyStyleProperties)
             .getWorkbook();
+
+    XSSFFont boldFont = ((XSSFWorkbook) workbook2).createFont();
+    boldFont.setBold(true);
+
+    // Create rich text: "Bold"
+    XSSFRichTextString richText = new XSSFRichTextString("Bold");
+    richText.applyFont(boldFont);
+
+    Calendar cal = Calendar.getInstance();
+    cal.set(2023, Calendar.JUNE, 1, 10, 30, 0);
+
+    workbookDto2 =
+        new WorkbookDto2(
+            Collections.singletonList(
+                new AllTypes(
+                    "hello",
+                    42,
+                    7,
+                    3.14,
+                    2.71,
+                    Boolean.TRUE,
+                    false,
+                    new Date(1685602200000L), // Example date
+                    LocalDate.of(2077, 6, 5),
+                    LocalDateTime.of(2025, 5, 1, 10, 30),
+                    cal,
+                    richText)));
+    Poijo.using(workbook2).map(workbookDto2);
   }
 
   @AfterAll
   static void tearDown() throws IOException {
-    workbook.close();
+    workbook1.close();
+    workbook2.close();
   }
 
   @Test
@@ -163,29 +200,29 @@ class PoijoTest {
 
   @Test
   void sheetOrderShouldMatchOrderAnnotation() {
-    assertThat(workbook.getSheetAt(CAT_SHEET_ID).getSheetName())
+    assertThat(workbook1.getSheetAt(CAT_SHEET_ID).getSheetName())
         .isEqualTo(WorkbookUtil.createSafeSheetName("Sheet: Cats"));
-    assertThat(workbook.getSheetAt(DOG_SHEET_ID).getSheetName()).isEqualTo("Pet Dogs");
-    assertThat(workbook.getSheetAt(USER_SHEET_ID).getSheetName()).isEqualTo("Users");
-    assertThat(workbook.getSheetAt(STORE_SHEET_ID).getSheetName())
+    assertThat(workbook1.getSheetAt(DOG_SHEET_ID).getSheetName()).isEqualTo("Pet Dogs");
+    assertThat(workbook1.getSheetAt(USER_SHEET_ID).getSheetName()).isEqualTo("Users");
+    assertThat(workbook1.getSheetAt(STORE_SHEET_ID).getSheetName())
         .isEqualTo(WorkbookUtil.createSafeSheetName("Sheet: Stores"));
   }
 
   @Test
   void shouldMapNestedObjectsWithCorrectRowCount() {
-    assertThat(workbook.getSheetAt(CAT_SHEET_ID).getPhysicalNumberOfRows())
-        .isEqualTo(workbookDto.getCats().size() + 1);
-    assertThat(workbook.getSheetAt(DOG_SHEET_ID).getPhysicalNumberOfRows())
-        .isEqualTo(workbookDto.getPetDogs().size() + 1);
-    assertThat(workbook.getSheetAt(USER_SHEET_ID).getPhysicalNumberOfRows())
-        .isEqualTo(workbookDto.getUsers().size() + 1);
-    assertThat(workbook.getSheetAt(STORE_SHEET_ID).getPhysicalNumberOfRows())
-        .isEqualTo(workbookDto.getStores().size() + 1);
+    assertThat(workbook1.getSheetAt(CAT_SHEET_ID).getPhysicalNumberOfRows())
+        .isEqualTo(workbookDto1.getCats().size() + 1);
+    assertThat(workbook1.getSheetAt(DOG_SHEET_ID).getPhysicalNumberOfRows())
+        .isEqualTo(workbookDto1.getPetDogs().size() + 1);
+    assertThat(workbook1.getSheetAt(USER_SHEET_ID).getPhysicalNumberOfRows())
+        .isEqualTo(workbookDto1.getUsers().size() + 1);
+    assertThat(workbook1.getSheetAt(STORE_SHEET_ID).getPhysicalNumberOfRows())
+        .isEqualTo(workbookDto1.getStores().size() + 1);
   }
 
   @Test
   void skippedFieldInOrderAnnotationShouldNotBeMapped() {
-    workbook
+    workbook1
         .getSheetAt(DOG_SHEET_ID)
         .getRow(0)
         .forEach(cell -> assertThat(cell.getStringCellValue()).isNotEqualTo("Weight"));
@@ -193,7 +230,7 @@ class PoijoTest {
 
   @Test
   void nestingWithoutColumnAnnotationNestedSetShouldNotBeMapped() {
-    workbook
+    workbook1
         .getSheetAt(CAT_SHEET_ID)
         .getRow(0)
         .forEach(cell -> assertThat(cell.getStringCellValue()).isNotEqualTo("Empty"));
@@ -202,7 +239,7 @@ class PoijoTest {
   @Test
   void shouldSkipEmptyCollectionsAndNotCreateEmptySheets() throws IOException {
     try (Workbook workbook = new XSSFWorkbook()) {
-      Poijo.using(workbook).map(new WorkbookDto());
+      Poijo.using(workbook).map(new WorkbookDto1());
       assertThat(workbook.getNumberOfSheets()).isEqualTo(0);
     }
   }
@@ -212,7 +249,7 @@ class PoijoTest {
     try (Workbook workbook = new XSSFWorkbook()) {
       Poijo.using(workbook)
           .map(
-              new WorkbookDto(
+              new WorkbookDto1(
                   Collections.emptySet(),
                   Collections.emptyList(),
                   Collections.emptyList(),
@@ -222,14 +259,49 @@ class PoijoTest {
   }
 
   @Test
+  void shouldMapAllSupportedTypes() {
+    Row bodyRow = workbook2.getSheetAt(0).getRow(1);
+    assertThat(bodyRow.getCell(0).getStringCellValue()).isEqualTo(workbookDto2.allTypes.get(0).str);
+    assertThat((int) bodyRow.getCell(1).getNumericCellValue())
+        .isEqualTo(workbookDto2.allTypes.get(0).integerObj);
+    assertThat((int) bodyRow.getCell(2).getNumericCellValue())
+        .isEqualTo(workbookDto2.allTypes.get(0).integerPrim);
+    assertThat(bodyRow.getCell(3).getNumericCellValue())
+        .isEqualTo(workbookDto2.allTypes.get(0).doubleObj);
+    assertThat(bodyRow.getCell(4).getNumericCellValue())
+        .isEqualTo(workbookDto2.allTypes.get(0).doublePrim);
+    assertThat(bodyRow.getCell(5).getBooleanCellValue())
+        .isEqualTo(workbookDto2.allTypes.get(0).booleanObj);
+    assertThat(bodyRow.getCell(6).getBooleanCellValue())
+        .isEqualTo(workbookDto2.allTypes.get(0).booleanPrim);
+    assertThat(bodyRow.getCell(7).getDateCellValue()).isEqualTo(workbookDto2.allTypes.get(0).date);
+    assertThat(bodyRow.getCell(8).getLocalDateTimeCellValue().toLocalDate())
+        .isEqualTo(workbookDto2.allTypes.get(0).localDate);
+    assertThat(bodyRow.getCell(9).getLocalDateTimeCellValue())
+        .isEqualTo(workbookDto2.allTypes.get(0).localDateTime);
+    assertThat(bodyRow.getCell(10).getDateCellValue())
+        .isEqualTo(workbookDto2.allTypes.get(0).calendar.getTime());
+    assertThat(bodyRow.getCell(11).getRichStringCellValue().getString())
+        .isEqualTo(workbookDto2.allTypes.get(0).richText.getString());
+  }
+
+  @Test
+  void richTextShouldHaveFormatting() {
+    XSSFRichTextString richText =
+        (XSSFRichTextString) workbook2.getSheetAt(0).getRow(1).getCell(11).getRichStringCellValue();
+    XSSFFont font = richText.getFontOfFormattingRun(0);
+    assertThat(font.getBold()).isTrue();
+  }
+
+  @Test
   void shouldMapNestedObjectsWithCorrectRowCountAfterFlattening() {
-    assertThat(workbook.getSheetAt(USER_SHEET_ID).getRow(0).getPhysicalNumberOfCells())
+    assertThat(workbook1.getSheetAt(USER_SHEET_ID).getRow(0).getPhysicalNumberOfCells())
         .isEqualTo(10);
   }
 
   @Test
   void shouldFlattenNestedObjectsAndCollections() {
-    Row header = workbook.getSheetAt(STORE_SHEET_ID).getRow(0);
+    Row header = workbook1.getSheetAt(STORE_SHEET_ID).getRow(0);
     Set<String> headers = new HashSet<>();
     for (Cell cell : header) headers.add(cell.getStringCellValue());
 
@@ -242,7 +314,7 @@ class PoijoTest {
   @Test
   void shouldApplyNumberFormatForAnnotatedColumns() {
     // Address.zipcode is formatted
-    Sheet sheet = workbook.getSheetAt(USER_SHEET_ID);
+    Sheet sheet = workbook1.getSheetAt(USER_SHEET_ID);
     Cell headerCell = sheet.getRow(0).getCell(7);
     Cell bodyCell = sheet.getRow(1).getCell(7);
 
@@ -254,7 +326,7 @@ class PoijoTest {
 
   @Test
   void applyCellStylePropertiesToHeaderShouldAffectOnlyHeader() {
-    Sheet sheet = workbook.getSheetAt(0);
+    Sheet sheet = workbook1.getSheetAt(0);
     Cell headerCell = sheet.getRow(0).getCell(0);
     assertThat(headerCell.getCellStyle().getFillForegroundColor())
         .as("header row should have grey color")
@@ -269,7 +341,7 @@ class PoijoTest {
 
   @Test
   void applyCellStylePropertiesShouldAffectAllCells() {
-    workbook.forEach(
+    workbook1.forEach(
         sheet ->
             sheet.forEach(
                 row ->
@@ -281,8 +353,8 @@ class PoijoTest {
 
   @Test
   void emptyStyleMapsShouldNotRemoveStyles() {
-    Poijo.using(workbook).applyCellStyleProperties(Collections.emptyMap());
-    assertThat(workbook.getSheetAt(0).getRow(0).getCell(0).getCellStyle().getAlignment())
+    Poijo.using(workbook1).applyCellStyleProperties(Collections.emptyMap());
+    assertThat(workbook1.getSheetAt(0).getRow(0).getCell(0).getCellStyle().getAlignment())
         .as("empty styles should not replace existing ones")
         .isEqualTo(HorizontalAlignment.CENTER);
   }
@@ -290,11 +362,16 @@ class PoijoTest {
   @Test
   void writingAWorkbookToAFileShouldWork() throws IOException {
     Files.createDirectories(Paths.get("target/output"));
-    Path path = Paths.get("target/output/workbook.xlsx");
-    try (OutputStream fileOut = Files.newOutputStream(path)) {
-      Poijo.using(workbook).write(fileOut);
-      assertThat(path).as("there should be an output").exists();
-      Files.deleteIfExists(path);
+    Path path1 = Paths.get("target/output/workbook1.xlsx");
+    Path path2 = Paths.get("target/output/workbook2.xlsx");
+    try (OutputStream workbookOut1 = Files.newOutputStream(path1);
+        OutputStream workbookOut2 = Files.newOutputStream(path2)) {
+      Poijo.using(workbook1).write(workbookOut1);
+      assertThat(new File(path1.normalize().toString())).exists().canRead().canWrite();
+      Files.deleteIfExists(path1);
+      Poijo.using(workbook2).write(workbookOut2);
+      assertThat(new File(path2.normalize().toString())).exists().canRead().canWrite();
+      Files.deleteIfExists(path2);
     }
   }
 }

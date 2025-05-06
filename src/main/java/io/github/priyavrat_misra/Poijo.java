@@ -279,10 +279,7 @@ public class Poijo {
     workbook.forEach(
         sheet -> {
           Iterator<Row> rowIterator = sheet.rowIterator();
-          // skip first row
-          if (rowIterator.hasNext()) {
-            rowIterator.next();
-          }
+          rowIterator.next(); // skip header
           rowIterator.forEachRemaining(
               row -> row.forEach(cell -> CellUtil.setCellStylePropertiesEnum(cell, styles)));
         });
