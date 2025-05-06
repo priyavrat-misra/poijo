@@ -2,11 +2,9 @@ package io.github.priyavrat_misra.model;
 
 import io.github.priyavrat_misra.annotations.Order;
 import io.github.priyavrat_misra.annotations.Sheet;
-import io.github.priyavrat_misra.annotations.Workbook;
 import java.util.List;
 import java.util.Set;
 
-@Workbook
 @Order({"cats", "petDogs", "users", "stores"})
 public class WorkbookDto1 {
   @Sheet(name = "Sheet: Cats")

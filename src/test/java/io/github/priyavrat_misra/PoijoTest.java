@@ -3,7 +3,6 @@ package io.github.priyavrat_misra;
 import static org.assertj.core.api.Assertions.*;
 
 import io.github.priyavrat_misra.model.*;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -188,17 +187,6 @@ class PoijoTest {
   }
 
   @Test
-  void objectNotAnnotatedWithWorkbookShouldThrowIllegalArgumentException() throws IOException {
-    try (Workbook workbook = new XSSFWorkbook()) {
-      assertThatThrownBy(() -> Poijo.using(workbook).map(new Object()))
-          .as("object without @Workbook throw IllegalArgumentException")
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessage(
-              "Passed object's class is not annotated with io.github.priyavrat_misra.annotations.Workbook");
-    }
-  }
-
-  @Test
   void sheetOrderShouldMatchOrderAnnotation() {
     assertThat(workbook1.getSheetAt(CAT_SHEET_ID).getSheetName())
         .isEqualTo(WorkbookUtil.createSafeSheetName("Sheet: Cats"));
@@ -206,6 +194,28 @@ class PoijoTest {
     assertThat(workbook1.getSheetAt(USER_SHEET_ID).getSheetName()).isEqualTo("Users");
     assertThat(workbook1.getSheetAt(STORE_SHEET_ID).getSheetName())
         .isEqualTo(WorkbookUtil.createSafeSheetName("Sheet: Stores"));
+  }
+
+  @Test
+  void sheetShouldHaveAnnotatedName() {
+    assertThat(workbook1.getSheetAt(CAT_SHEET_ID).getSheetName())
+        .isEqualTo(WorkbookUtil.createSafeSheetName("Sheet: Cats"));
+  }
+
+  @Test
+  void columnShouldHaveAnnotatedName() {
+    assertThat(workbook2.getSheetAt(0).getRow(0).getCell(2).getStringCellValue()).isEqualTo("int");
+  }
+
+  @Test
+  void sheetNameShouldHaveWorkbookDelimiter() {
+    assertThat(workbook2.getSheetAt(0).getSheetName()).isEqualTo("All.Types");
+  }
+
+  @Test
+  void columnNameShouldHaveWorkbookDelimiter() {
+    assertThat(workbook2.getSheetAt(0).getRow(0).getCell(1).getStringCellValue())
+        .isEqualTo("Integer.Obj");
   }
 
   @Test

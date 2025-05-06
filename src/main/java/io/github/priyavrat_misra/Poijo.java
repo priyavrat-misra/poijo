@@ -78,10 +78,9 @@ public class Poijo {
    * <p>Example:
    *
    * <p>Say there are two classes {@code Author} and {@code Book}, and a base class, {@code Library}
-   * (should be annotated with {@link io.github.priyavrat_misra.annotations.Workbook}).
    *
    * <pre><code>
-   * {@literal @}Workbook // to indicate this class will be used as a Workbook
+   * {@literal @}Workbook // optional if there are no arguments
    * public class Library {
    *     // custom sheet name can be provided using {@literal @}Sheet(name = "...")
    *     public Set&lt;Book&gt; books;
@@ -207,30 +206,12 @@ public class Poijo {
    *     methods, or fields</a>
    */
   public <T> Poijo map(T object) {
-    PojoMapper.map(workbook, validate(object));
-    return this;
-  }
-
-  /**
-   * @throws NullPointerException if {@code object} is {@code null}
-   * @throws IllegalArgumentException if {@link T} is not annotated with {@link
-   *     io.github.priyavrat_misra.annotations.Workbook}
-   */
-  private <T> T validate(T object) {
     if (object == null) {
       logger.error("object is null");
       throw new NullPointerException("object cannot be null");
     }
-    if (!object
-        .getClass()
-        .isAnnotationPresent(io.github.priyavrat_misra.annotations.Workbook.class)) {
-      logger.error(
-          "{} is not annotated with io.github.priyavrat_misra.annotations.Workbook",
-          object.getClass().getName());
-      throw new IllegalArgumentException(
-          "Passed object's class is not annotated with io.github.priyavrat_misra.annotations.Workbook");
-    }
-    return object;
+    PojoMapper.map(workbook, object);
+    return this;
   }
 
   /**

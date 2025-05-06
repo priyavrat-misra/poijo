@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.Date;
 
+import io.github.priyavrat_misra.annotations.Column;
 import io.github.priyavrat_misra.annotations.Order;
 import org.apache.poi.ss.usermodel.RichTextString;
 
@@ -28,6 +29,8 @@ public class AllTypes {
 
   // Integer types
   public Integer integerObj;
+
+  @Column(name = "int")
   public int integerPrim;
 
   // Double types

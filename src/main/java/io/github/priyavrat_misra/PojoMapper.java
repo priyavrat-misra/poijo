@@ -43,6 +43,8 @@ class PojoMapper {
     final Class<?> workbookClass = object.getClass();
     final io.github.priyavrat_misra.annotations.Workbook workbookAnnotation =
         workbookClass.getDeclaredAnnotation(io.github.priyavrat_misra.annotations.Workbook.class);
+    final String delimiter =
+        workbookAnnotation != null ? workbookAnnotation.delimiter() : StringUtils.SPACE;
     final List<String> sheetFieldNames = getEligibleSheetFieldNames(workbookClass);
     logger.debug("populateWorkbook sheetFieldNames {}", sheetFieldNames);
     for (String sheetFieldName : sheetFieldNames) {
@@ -50,15 +52,10 @@ class PojoMapper {
       assert sheetField != null;
       final Collection<?> rows = (Collection<?>) getFieldValue(sheetField, object);
       if (rows != null && !rows.isEmpty()) {
-        final Sheet sheet = createSheet(sheetField, workbook, sheetFieldName, workbookAnnotation);
+        final Sheet sheet = createSheet(sheetField, workbook, sheetFieldName, delimiter);
         logger.info("new sheet created with name {}", sheet.getSheetName());
         populateSheet(
-            sheet,
-            rows,
-            EMPTY,
-            0,
-            workbookAnnotation,
-            sheetField.getDeclaredAnnotation(Column.class));
+            sheet, rows, EMPTY, 0, delimiter, sheetField.getDeclaredAnnotation(Column.class));
       } else {
         logger.warn("No rows found for sheetFieldName {}, skipping sheet creation", sheetFieldName);
       }
@@ -103,24 +100,21 @@ class PojoMapper {
    * @param sheetField used to access {@link io.github.priyavrat_misra.annotations.Sheet}
    * @param workbook this is where the sheet is created
    * @param sheetFieldName field's name as a string
-   * @param workbookAnnotation used to access workbook level properties
+   * @param delimiter for delimiting sheet names
    * @return newly created {@link Sheet}'s reference
    * @see WorkbookUtil#createSafeSheetName(String)
    * @see StringUtils#capitalize(String)
    * @see StringUtils#splitByCharacterTypeCamelCase(String)
    */
   private static Sheet createSheet(
-      Field sheetField,
-      Workbook workbook,
-      String sheetFieldName,
-      io.github.priyavrat_misra.annotations.Workbook workbookAnnotation) {
+      Field sheetField, Workbook workbook, String sheetFieldName, String delimiter) {
     final io.github.priyavrat_misra.annotations.Sheet sheetAnnotation =
         sheetField.getDeclaredAnnotation(io.github.priyavrat_misra.annotations.Sheet.class);
     return workbook.createSheet(
         WorkbookUtil.createSafeSheetName(
             sheetAnnotation != null && !sheetAnnotation.name().isEmpty()
                 ? sheetAnnotation.name()
-                : prepareCapitalizedForm(sheetFieldName, workbookAnnotation.delimiter())));
+                : prepareCapitalizedForm(sheetFieldName, delimiter)));
   }
 
   /**
@@ -137,7 +131,7 @@ class PojoMapper {
    * @param rows a collection of rows which are to be populated to the {@code sheet}
    * @param titlePath path of the title so far, used for nested properties.
    * @param columnIndex current column index
-   * @param workbookAnnotation used to access workbook level properties
+   * @param delimiter for delimiting column names
    * @param columnAnnotation used to access column properties
    * @return new column index
    */
@@ -146,7 +140,7 @@ class PojoMapper {
       Collection<?> rows,
       String titlePath,
       int columnIndex,
-      final io.github.priyavrat_misra.annotations.Workbook workbookAnnotation,
+      String delimiter,
       Column columnAnnotation) {
     final Class<?> rowClass =
         rows.stream().filter(Objects::nonNull).findFirst().map(Object::getClass).orElse(null);
@@ -155,11 +149,9 @@ class PojoMapper {
         logger.info("populating new column {} in sheet {}", titlePath, sheet.getSheetName());
         columnIndex = populateColumn(sheet, rows, titlePath, columnIndex, columnAnnotation);
       } else if (Collection.class.isAssignableFrom(rowClass)) {
-        columnIndex =
-            populateCollection(sheet, rows, titlePath, columnIndex, workbookAnnotation, rowClass);
+        columnIndex = populateCollection(sheet, rows, titlePath, columnIndex, delimiter, rowClass);
       } else {
-        columnIndex =
-            populateObject(sheet, rows, titlePath, columnIndex, workbookAnnotation, rowClass);
+        columnIndex = populateObject(sheet, rows, titlePath, columnIndex, delimiter, rowClass);
       }
     }
     return columnIndex;
@@ -244,7 +236,7 @@ class PojoMapper {
       Collection<?> rows,
       String titlePath,
       int columnIndex,
-      io.github.priyavrat_misra.annotations.Workbook workbookAnnotation,
+      String delimiter,
       Class<?> rowClass) {
     final int maxSize =
         rows.stream()
@@ -264,9 +256,9 @@ class PojoMapper {
                   .map(ArrayList::new)
                   .map(row -> fIndex < row.size() ? row.get(fIndex) : null)
                   .collect(Collectors.toList()),
-              titlePath + workbookAnnotation.delimiter() + index,
+              titlePath + delimiter + index,
               columnIndex,
-              workbookAnnotation,
+              delimiter,
               rowClass.getDeclaredAnnotation(Column.class));
     }
     return columnIndex;
@@ -277,7 +269,7 @@ class PojoMapper {
       Collection<?> rows,
       String titlePath,
       int columnIndex,
-      io.github.priyavrat_misra.annotations.Workbook workbookAnnotation,
+      String delimiter,
       Class<?> rowClass) {
     final List<String> columnNames = getEligibleColumnNames(rowClass);
     logger.debug("populateObject columnNames {}", columnNames);
@@ -287,17 +279,17 @@ class PojoMapper {
       final Column columnAnnotation = field.getDeclaredAnnotation(Column.class);
       final String newTitlePath =
           titlePath
-              + (titlePath.isEmpty() ? EMPTY : workbookAnnotation.delimiter())
+              + (titlePath.isEmpty() ? EMPTY : delimiter)
               + (columnAnnotation != null && !columnAnnotation.name().isEmpty()
                   ? columnAnnotation.name()
-                  : prepareCapitalizedForm(columnName, workbookAnnotation.delimiter()));
+                  : prepareCapitalizedForm(columnName, delimiter));
       columnIndex =
           populateSheet(
               sheet,
               rows.stream().map(row -> getFieldValue(field, row)).collect(Collectors.toList()),
               newTitlePath,
               columnIndex,
-              workbookAnnotation,
+              delimiter,
               columnAnnotation);
     }
     return columnIndex;

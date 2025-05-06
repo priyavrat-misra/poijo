@@ -44,7 +44,7 @@ Below are some quick-start examples. For more detailed documentation, see the Ja
 1. Prepare POJOs
 
 > ```java
-> @Workbook
+> @Workbook // optional if there are no arguments
 > public class Library {
 >   @Sheet(name = "Books")
 >   public List<Book> books;
